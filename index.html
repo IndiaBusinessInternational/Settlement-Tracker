@@ -864,9 +864,12 @@ td {
       <button class="theme-toggle" id="menuBtn" onclick="toggleMenu()" title="Menu">⚙</button>
       <div class="app-menu" id="appMenu">
         <button onclick="pwaInstall()">📥 Install app</button>
+        <button onclick="closeMenu();downloadBackup()">⬇ Download backup</button>
+        <button onclick="closeMenu();document.getElementById('restoreInput').click()">⬆ Restore from backup</button>
         <button onclick="toggleTheme();closeMenu()">🌓 Light / Dark mode</button>
         <button onclick="closeMenu();clearAll()">🗑 Clear all data</button>
       </div>
+      <input type="file" id="restoreInput" accept=".json,application/json" style="display:none" onchange="handleRestore(event)">
     </div>
   </div>
   <div class="logo-banner">
@@ -1286,7 +1289,7 @@ let activeMapping = null; // currently visible mapping tab
 //  INIT
 // ═══════════════════════════════════════════════
 // App version — bump this on every update.  vX.Y → Y = small patch, X = big feature.
-const APP_VERSION = 'v4.5';
+const APP_VERSION = 'v4.6';
 
 function init() {
   const vb = document.getElementById('versionBadge');
@@ -2948,6 +2951,63 @@ function clearAll() {
   document.getElementById('exportBtn').disabled = true;
   idbClear();                       // also wipe the saved session so refresh stays empty
   showToast('All data cleared', 'info');
+}
+
+// ═══════════════════════════════════════════════
+//  BACKUP & RESTORE — full state to / from a .json file
+// ═══════════════════════════════════════════════
+function downloadBackup() {
+  const backup = {
+    app: 'IBI Settlement Tracker',
+    version: APP_VERSION,
+    ts: new Date().toISOString(),
+    uploadedFiles: uploadedFiles,
+    mappings: mappings,
+    costMaster: costMaster,
+    settings: {
+      gasUrl:     localStorage.getItem('ibi_gas_url')     || '',
+      settleDays: localStorage.getItem('ibi_settle_days') || '15',
+      theme:      localStorage.getItem('ibi_theme')       || 'dark'
+    }
+  };
+  const blob = new Blob([JSON.stringify(backup)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'IBI_Tracker_Backup_' + fmtDate(new Date()) + '.json';
+  a.click(); URL.revokeObjectURL(url);
+  showToast(`✓ Backup downloaded — ${uploadedFiles.length} files + your saved costs`, 'success');
+}
+
+function handleRestore(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    let b;
+    try { b = JSON.parse(e.target.result); } catch (err) { return showToast('Invalid backup file — not valid JSON', 'error'); }
+    if (!b || b.app !== 'IBI Settlement Tracker') return showToast('That is not an IBI Settlement Tracker backup', 'error');
+    if ((allOrders.length || uploadedFiles.length) &&
+        !confirm('Restore this backup? It will replace the files & data currently loaded.\n(Your saved per-SKU costs will be replaced by the backup’s costs.)')) return;
+    try {
+      uploadedFiles = Array.isArray(b.uploadedFiles) ? b.uploadedFiles : [];
+      Object.keys(mappings).forEach(k => delete mappings[k]);
+      if (b.mappings) Object.assign(mappings, b.mappings);
+      if (b.costMaster && typeof b.costMaster === 'object') { costMaster = b.costMaster; saveCostMaster(); }
+      if (b.settings) {
+        if (b.settings.gasUrl !== undefined)  { localStorage.setItem('ibi_gas_url', b.settings.gasUrl); const g = document.getElementById('gasUrl'); if (g) g.value = b.settings.gasUrl; }
+        if (b.settings.settleDays)            { localStorage.setItem('ibi_settle_days', b.settings.settleDays); const s = document.getElementById('settleDays'); if (s) s.value = b.settings.settleDays; }
+        if (b.settings.theme)                 { applyTheme(b.settings.theme); localStorage.setItem('ibi_theme', b.settings.theme); }
+      }
+      updateBadges(); renderFileChips(); buildMappingPanel();
+      if (uploadedFiles.length) parseAll();
+      saveState();
+      showToast(`✓ Restored backup — ${uploadedFiles.length} file(s)`, 'success');
+    } catch (err) {
+      showToast('Restore failed: ' + err.message, 'error');
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
 }
 
 // ═══════════════════════════════════════════════
