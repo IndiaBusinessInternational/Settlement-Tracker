@@ -2,11 +2,17 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="IBI Tracker">
 <title>IBI Settlement Tracker — India Business International</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23000000'/%3E%3Ctext x='32' y='43' font-family='Roboto,Arial,sans-serif' font-size='27' font-weight='700' text-anchor='middle' fill='%2300c5ff'%3EIBI%3C/text%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23000000'/%3E%3Ctext x='32' y='43' font-family='Roboto,Arial,sans-serif' font-size='27' font-weight='700' text-anchor='middle' fill='%2300c5ff'%3EIBI%3C/text%3E%3C/svg%3E">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
-<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root {
   /* Dark theme (default) */
@@ -14,9 +20,9 @@
   --navy-mid:   #152233;
   --navy-light: #1e3050;
   --navy-card:  #172842;
-  --cyan:       #00D4F0;
+  --cyan:       #00c5ff;
   --cyan-dim:   #009db3;
-  --cyan-glow:  rgba(0,212,240,0.15);
+  --cyan-glow:  rgba(0,197,255,0.15);
   --text:       #ddeef5;
   --text-dim:   #6b9ab8;
   --text-mute:  #3d6278;
@@ -55,7 +61,7 @@
 body {
   background: var(--navy);
   color: var(--text);
-  font-family: 'Inter', sans-serif;
+  font-family: 'Roboto', sans-serif;
   min-height: 100vh;
   overflow-x: hidden;
   transition: background 0.3s, color 0.3s;
@@ -81,10 +87,35 @@ body::before {
 
 /* ─── HEADER ─── */
 header {
-  padding: 20px 0 16px;
+  padding: 0 0 18px;
   border-bottom: 1px solid var(--border);
-  display: flex; align-items: center; gap: 20px;
-  margin-bottom: 28px;
+  margin-bottom: 26px;
+}
+.topbar {
+  display: flex; align-items: center; gap: 12px;
+  flex-wrap: wrap; padding: 12px 0;
+}
+.version-badge {
+  font-family: 'Roboto Mono', monospace; font-size: 11px; font-weight: 500;
+  color: #00c5ff; background: #000;
+  border: 1px solid var(--border); border-radius: 20px;
+  padding: 5px 13px; white-space: nowrap; letter-spacing: 0.02em;
+}
+.live-clock {
+  font-family: 'Roboto Mono', monospace; font-size: 12.5px;
+  color: var(--text-dim); margin-left: auto; white-space: nowrap;
+}
+.topbar-actions { display: flex; align-items: center; gap: 8px; }
+.logo-banner {
+  background: #000; border: 1px solid var(--border); border-radius: 14px;
+  padding: 20px 24px; display: flex; flex-direction: column;
+  align-items: center; gap: 8px; box-shadow: var(--shadow);
+}
+.ibi-logo-svg { width: 100%; max-width: 600px; height: auto; display: block; }
+.logo-tagline {
+  font-family: 'Roboto', sans-serif; font-size: 10.5px; font-weight: 500;
+  letter-spacing: 0.16em; color: #00c5ff; opacity: 0.78;
+  text-transform: uppercase; text-align: center;
 }
 .ibi-logo {
   display: flex; align-items: center; gap: 12px; flex-shrink: 0;
@@ -104,7 +135,7 @@ header {
 .logo-divider { width: 1px; height: 36px; background: var(--border); }
 .logo-text { display: flex; flex-direction: column; }
 .logo-main {
-  font-family: 'Rajdhani', sans-serif;
+  font-family: 'Roboto', sans-serif;
   font-size: 15px; font-weight: 700; letter-spacing: 0.08em;
   color: var(--text); line-height: 1;
 }
@@ -118,7 +149,7 @@ header {
   text-align: right;
 }
 .header-title h1 {
-  font-family: 'Rajdhani', sans-serif;
+  font-family: 'Roboto', sans-serif;
   font-size: 22px; font-weight: 700; color: var(--cyan);
   letter-spacing: 0.04em;
 }
@@ -171,7 +202,7 @@ header {
   color: var(--text);
   padding: 8px 12px;
   font-size: 12px;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'Roboto Mono', monospace;
   outline: none;
   transition: border-color 0.2s;
 }
@@ -187,21 +218,24 @@ header {
   font-size: 10px; padding: 3px 8px; border-radius: 4px;
   background: rgba(0,212,240,0.1); color: var(--cyan);
   border: 1px solid var(--border); letter-spacing: 0.04em;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'Roboto Mono', monospace;
 }
 
 /* ─── SECTION TITLE ─── */
 .section-title {
-  font-family: 'Rajdhani', sans-serif;
-  font-size: 11px; font-weight: 600; letter-spacing: 0.14em;
-  color: var(--text-dim); text-transform: uppercase;
-  margin-bottom: 12px;
+  font-family: 'Roboto', sans-serif;
+  font-size: 12px; font-weight: 700; letter-spacing: 0.12em;
+  color: #00c5ff; text-transform: uppercase;
+  background: #000; padding: 8px 14px; border-radius: 7px;
+  margin-bottom: 14px;
   display: flex; align-items: center; gap: 10px;
 }
 .section-title::after {
   content: ''; flex: 1; height: 1px;
-  background: linear-gradient(90deg, var(--border) 0%, transparent 100%);
+  background: linear-gradient(90deg, rgba(0,197,255,0.45) 0%, transparent 100%);
 }
+/* Cyan headings inside panels */
+.mapping-panel h3, .upload-status h3, .guide-panel h3, .pl-col h4 { color: #00c5ff; }
 
 /* ─── UPLOAD ZONE ─── */
 .upload-grid {
@@ -265,7 +299,7 @@ header {
 }
 .upload-status.visible { display: block; }
 .upload-status h3 {
-  font-family: 'Rajdhani', sans-serif;
+  font-family: 'Roboto', sans-serif;
   font-size: 13px; font-weight: 600; letter-spacing: 0.08em;
   color: var(--text-dim); text-transform: uppercase;
   margin-bottom: 10px;
@@ -300,7 +334,7 @@ header {
 }
 .mapping-panel.visible { display: block; }
 .mapping-panel h3 {
-  font-family: 'Rajdhani', sans-serif;
+  font-family: 'Roboto', sans-serif;
   font-size: 14px; font-weight: 700; letter-spacing: 0.08em;
   text-transform: uppercase; margin-bottom: 16px;
   color: var(--cyan);
@@ -313,7 +347,7 @@ header {
   padding: 7px 16px; font-size: 12px; cursor: pointer;
   color: var(--text-dim); border-bottom: 2px solid transparent;
   margin-bottom: -1px; transition: all 0.2s;
-  font-family: 'Rajdhani', sans-serif;
+  font-family: 'Roboto', sans-serif;
   font-weight: 600; letter-spacing: 0.06em;
 }
 .mapping-tab.active { color: var(--cyan); border-bottom-color: var(--cyan); }
@@ -389,7 +423,7 @@ header {
 }
 .btn {
   padding: 9px 20px; border-radius: 7px;
-  font-family: 'Rajdhani', sans-serif;
+  font-family: 'Roboto', sans-serif;
   font-size: 13px; font-weight: 700;
   letter-spacing: 0.06em; cursor: pointer;
   border: none; outline: none; transition: all 0.2s;
@@ -444,7 +478,7 @@ header {
   margin-bottom: 8px;
 }
 .dash-card .dc-value {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'Roboto Mono', monospace;
   font-size: 20px; font-weight: 500;
   color: var(--card-color, var(--text));
   line-height: 1;
@@ -467,7 +501,7 @@ header {
 .filter-pill {
   padding: 5px 12px; border-radius: 20px;
   font-size: 11px; cursor: pointer; font-weight: 600;
-  font-family: 'Rajdhani', sans-serif; letter-spacing: 0.04em;
+  font-family: 'Roboto', sans-serif; letter-spacing: 0.04em;
   border: 1px solid var(--border); color: var(--text-dim);
   background: transparent; transition: all 0.2s;
   white-space: nowrap;
@@ -501,7 +535,7 @@ table {
 }
 thead th {
   padding: 11px 14px;
-  font-family: 'Rajdhani', sans-serif;
+  font-family: 'Roboto', sans-serif;
   font-size: 10px; font-weight: 700;
   letter-spacing: 0.1em; text-transform: uppercase;
   color: var(--text-mute);
@@ -526,7 +560,7 @@ td {
 .td-platform {
   display: inline-flex; align-items: center; gap: 5px;
   font-size: 10px; font-weight: 600;
-  font-family: 'Rajdhani', sans-serif; letter-spacing: 0.06em;
+  font-family: 'Roboto', sans-serif; letter-spacing: 0.06em;
   padding: 3px 8px; border-radius: 4px;
   background: rgba(255,255,255,0.04);
   border: 1px solid rgba(255,255,255,0.08);
@@ -537,7 +571,7 @@ td {
 .td-status {
   display: inline-flex; align-items: center; gap: 5px;
   font-size: 10px; font-weight: 600;
-  font-family: 'Rajdhani', sans-serif; letter-spacing: 0.06em;
+  font-family: 'Roboto', sans-serif; letter-spacing: 0.06em;
   padding: 3px 8px; border-radius: 4px;
 }
 .td-status.settled { background: rgba(34,197,94,0.12); color: var(--settled); }
@@ -545,18 +579,18 @@ td {
 .td-status.returned { background: rgba(239,68,68,0.12); color: var(--returned); }
 .td-status.cancelled { background: rgba(107,114,128,0.12); color: var(--cancelled); }
 .td-amount {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'Roboto Mono', monospace;
   font-size: 13px; font-weight: 500;
   color: var(--text); text-align: right;
 }
 .td-amount.settled { color: var(--settled); }
 .td-amount.pending { color: var(--pending); }
 .td-amount.returned { color: var(--returned); opacity: 0.6; text-decoration: line-through; }
-.td-date { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text-dim); }
-.td-id { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text-dim); }
+.td-date { font-family: 'Roboto Mono', monospace; font-size: 11px; color: var(--text-dim); }
+.td-id { font-family: 'Roboto Mono', monospace; font-size: 11px; color: var(--text-dim); }
 .td-product { max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .td-days {
-  font-family: 'JetBrains Mono', monospace; font-size: 11px;
+  font-family: 'Roboto Mono', monospace; font-size: 11px;
 }
 .td-days.overdue { color: var(--settled); }
 .td-days.soon { color: var(--pending); }
@@ -592,7 +626,7 @@ td {
 }
 .empty-state .es-icon { font-size: 40px; margin-bottom: 16px; opacity: 0.4; }
 .empty-state h3 {
-  font-family: 'Rajdhani', sans-serif;
+  font-family: 'Roboto', sans-serif;
   font-size: 18px; font-weight: 700; color: var(--text-dim);
   letter-spacing: 0.04em; margin-bottom: 8px;
 }
@@ -649,11 +683,21 @@ td {
 
 /* ─── RESPONSIVE ─── */
 @media (max-width: 768px) {
-  header { flex-wrap: wrap; }
-  .header-title { margin-left: 0; text-align: left; width: 100%; }
+  /* Edge-to-edge — no side padding, maximise screen area */
+  .wrap { padding: 0 0 40px; max-width: 100%; }
+  header { padding: 0 0 10px; }
+  .topbar { padding: 10px 12px 6px; }
+  .live-clock { font-size: 11px; width: 100%; margin-left: 0; text-align: left; order: 3; }
+  /* Full-bleed panels (cards keep their own inner padding for readability) */
+  .logo-banner,
+  .config-bar, .upload-status, .mapping-panel, .table-wrap, .guide-panel, .pl-card {
+    border-radius: 0; border-left: 0; border-right: 0;
+  }
   .dashboard { grid-template-columns: repeat(2, 1fr); }
   .upload-grid { grid-template-columns: repeat(2, 1fr); }
   .search-box { width: 100%; }
+  .table-wrap { overflow-x: auto; }       /* wide table scrolls horizontally */
+  table { min-width: 700px; }
 }
 
 /* ─── GAS GUIDE ─── */
@@ -665,7 +709,7 @@ td {
 }
 .guide-panel.visible { display: block; }
 .guide-panel h3 {
-  font-family: 'Rajdhani', sans-serif;
+  font-family: 'Roboto', sans-serif;
   font-size: 14px; font-weight: 700; letter-spacing: 0.08em;
   color: #a855f7; text-transform: uppercase; margin-bottom: 12px;
 }
@@ -673,16 +717,99 @@ td {
   background: rgba(0,0,0,0.3); border-radius: 7px;
   padding: 14px; font-size: 11px; overflow-x: auto;
   color: #c4b5fd; line-height: 1.6;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'Roboto Mono', monospace;
   border: 1px solid rgba(168,85,247,0.15);
   white-space: pre-wrap; word-break: break-word;
 }
 .guide-toggle {
   background: none; border: none; cursor: pointer;
   color: #a855f7; font-size: 12px;
-  font-family: 'Rajdhani', sans-serif; font-weight: 600;
+  font-family: 'Roboto', sans-serif; font-weight: 600;
   letter-spacing: 0.06em; text-decoration: underline;
   padding: 0; margin-bottom: 16px; display: inline-block;
+}
+
+/* ─── ORDER LOOKUP / PROFIT BREAKDOWN ─── */
+.pl-cards { display: flex; flex-direction: column; gap: 18px; margin-bottom: 28px; }
+.pl-card {
+  background: var(--navy-card); border: 1px solid var(--border);
+  border-radius: 12px; overflow: hidden; box-shadow: var(--shadow);
+}
+.pl-head {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 12px;
+  padding: 14px 20px; border-bottom: 1px solid var(--border);
+  background: rgba(0,0,0,0.12);
+}
+.pl-head .pl-oid {
+  font-family: 'Roboto Mono', monospace; font-size: 14px;
+  color: var(--cyan); font-weight: 500;
+}
+.pl-body { display: grid; grid-template-columns: 1fr 1fr; }
+.pl-col { padding: 18px 22px; min-width: 0; }
+.pl-col + .pl-col { border-left: 1px solid var(--border-dim); }
+.pl-col h4 {
+  font-family: 'Roboto', sans-serif; font-size: 12px;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--cyan); margin-bottom: 14px;
+}
+.pl-row {
+  display: flex; justify-content: space-between; align-items: center;
+  gap: 10px; padding: 5px 0; font-size: 12.5px; color: var(--text);
+}
+.pl-row .lbl { color: var(--text-dim); }
+.pl-row .val { font-family: 'Roboto Mono', monospace; white-space: nowrap; }
+.pl-row.sub .lbl { padding-left: 14px; color: var(--text-mute); font-size: 11.5px; }
+.pl-row.sub .val { color: var(--returned); opacity: 0.85; }
+.pl-row.total {
+  border-top: 1px solid var(--border); margin-top: 8px;
+  padding-top: 10px; font-weight: 600;
+}
+.pl-row.total .lbl { color: var(--text); }
+.pl-row.net {
+  background: var(--cyan-glow); margin: 8px -10px 0; padding: 9px 10px;
+  border-radius: 6px; color: var(--cyan); font-weight: 600;
+}
+.pl-row.net .lbl { color: var(--cyan); }
+.pl-cap {
+  margin-top: 8px; font-size: 10px; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--text-mute);
+}
+.pl-input {
+  width: 120px; background: var(--navy-light); border: 1px solid var(--border);
+  border-radius: 5px; color: var(--text); padding: 5px 8px;
+  font-size: 12px; font-family: 'Roboto Mono', monospace;
+  text-align: right; outline: none; transition: border-color 0.2s;
+}
+.pl-input:focus { border-color: var(--cyan); }
+[data-theme="light"] .pl-input { background: #f8fafc; }
+.pl-input-row {
+  display: flex; justify-content: space-between; align-items: center;
+  gap: 10px; padding: 5px 0; font-size: 12.5px;
+}
+.pl-input-row label { color: var(--text-dim); }
+.profit-summary { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-top: 16px; }
+.profit-box {
+  background: var(--navy-light); border: 1px solid var(--border-dim);
+  border-radius: 8px; padding: 12px 8px; text-align: center;
+}
+[data-theme="light"] .profit-box { background: #f0f4f8; }
+.profit-box .pb-label {
+  font-size: 9px; letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--text-mute); margin-bottom: 6px;
+}
+.profit-box .pb-value { font-family: 'Roboto Mono', monospace; font-size: 16px; font-weight: 600; }
+.profit-pos { color: var(--settled); }
+.profit-neg { color: var(--returned); }
+.pl-actions { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
+.pl-note {
+  font-size: 11px; color: var(--text-dim); line-height: 1.7;
+  padding: 12px 20px; border-top: 1px solid var(--border-dim);
+  background: rgba(245,158,11,0.05);
+}
+.pl-note strong { color: var(--text); }
+@media (max-width: 768px) {
+  .pl-body { grid-template-columns: 1fr; }
+  .pl-col + .pl-col { border-left: none; border-top: 1px solid var(--border-dim); }
 }
 </style>
 </head>
@@ -691,25 +818,26 @@ td {
 
 <!-- HEADER -->
 <header>
-  <div class="ibi-logo">
-    <div class="logo-dots">
-      <span></span><span></span><span></span>
-      <span></span><span></span><span></span>
-      <span></span><span></span><span></span>
-    </div>
-    <div class="logo-divider"></div>
-    <div class="logo-text">
-      <div class="logo-main">INDIA BUSINESS INTERNATIONAL</div>
-      <div class="logo-sub">eCommerce for the World</div>
+  <div class="topbar">
+    <span class="version-badge" id="versionBadge">IBI Settlement Tracker v4.0</span>
+    <span class="live-clock" id="liveClock">—</span>
+    <div class="topbar-actions">
+      <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Switch light/dark mode">
+        <span id="themeIcon">☀</span>
+      </button>
     </div>
   </div>
-  <div class="header-title">
-    <h1>SETTLEMENT TRACKER</h1>
-    <p>MULTI-PLATFORM · PAYMENT RECONCILIATION · INR</p>
+  <div class="logo-banner">
+    <svg class="ibi-logo-svg" viewBox="0 0 840 180" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="India Business International">
+      <g id="logoDots"></g>
+      <line x1="162" y1="18" x2="162" y2="150" stroke="#00c5ff" stroke-width="3" opacity="0.55"/>
+      <text x="186" y="50"  font-family="Roboto, Arial, sans-serif" font-weight="900" font-size="44" fill="#00c5ff">INDIA</text>
+      <text x="186" y="96"  font-family="Roboto, Arial, sans-serif" font-weight="900" font-size="44" fill="#00c5ff">BUSINESS</text>
+      <text x="186" y="140" font-family="Roboto, Arial, sans-serif" font-weight="900" font-size="40" fill="#00c5ff">INTERNATIONAL</text>
+      <text x="188" y="170" font-family="Roboto, Arial, sans-serif" font-weight="400" font-size="22" fill="#00c5ff" opacity="0.75">eCommerce for the World</text>
+    </svg>
+    <div class="logo-tagline">Settlement Tracker · Multi-Platform Payment Reconciliation · INR</div>
   </div>
-  <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Switch light/dark mode">
-    <span id="themeIcon">☀</span>
-  </button>
 </header>
 
 <!-- CONFIG BAR -->
@@ -864,6 +992,20 @@ function doGet(e) {
 <!-- DASHBOARD -->
 <div class="section-title" id="dashTitle" style="display:none;">Settlement Summary</div>
 <div class="dashboard" id="dashboard"></div>
+
+<!-- ORDER LOOKUP / PROFIT -->
+<div id="lookupSection" style="display:none;">
+  <div class="section-title">Order Lookup — Cost &amp; Profit Breakdown</div>
+  <div class="config-bar" style="margin-bottom:18px;">
+    <label>ORDER ID</label>
+    <input type="text" id="lookupInput"
+           placeholder="Paste an Order ID to see its full cost, fee &amp; profit breakdown…"
+           onkeydown="if(event.key==='Enter')lookupOrder()" />
+    <button class="btn btn-primary" onclick="lookupOrder()" style="font-size:12px;padding:8px 16px;">🔍 Look Up</button>
+    <button class="btn btn-secondary" onclick="clearLookup()" style="font-size:12px;padding:8px 16px;">✕ Clear</button>
+  </div>
+  <div id="lookupResult" class="pl-cards"></div>
+</div>
 
 <!-- TABLE -->
 <div id="tableSection" style="display:none;">
@@ -1081,9 +1223,46 @@ let activeMapping = null; // currently visible mapping tab
 // ═══════════════════════════════════════════════
 //  INIT
 // ═══════════════════════════════════════════════
+// App version — bump this on every update.  vX.Y → Y = small patch, X = big feature.
+const APP_VERSION = 'v4.1';
+
 function init() {
+  const vb = document.getElementById('versionBadge');
+  if (vb) vb.textContent = 'IBI Settlement Tracker ' + APP_VERSION;
+  buildLogo();
+  startClock();
   buildUploadGrid();
   buildFilterPills();
+}
+
+// Draw the IBI dot-matrix (5×5, dots grow toward the bottom-right) into the logo SVG.
+function buildLogo() {
+  const g = document.getElementById('logoDots');
+  if (!g) return;
+  let s = '';
+  for (let row = 0; row < 5; row++) for (let col = 0; col < 5; col++) {
+    const cx = 20 + col * 30, cy = 20 + row * 30;
+    const r  = (5 + (col + row) * 0.9).toFixed(1);                 // bigger dots — left side clearly visible
+    const op = Math.min(1, 0.9 + (col + row) * 0.0125).toFixed(2); // solid cyan (subtle depth only)
+    s += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="#00c5ff" opacity="${op}"/>`;
+  }
+  g.innerHTML = s;
+}
+
+// Live clock — "28 May 2026, Thursday, 01:38:00 PM"
+function startClock() {
+  const el = document.getElementById('liveClock');
+  if (!el) return;
+  const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const mon  = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const pad  = n => String(n).padStart(2, '0');
+  function tick() {
+    const d = new Date();
+    let h = d.getHours(); const ap = h >= 12 ? 'PM' : 'AM'; h = h % 12 || 12;
+    el.textContent = `${d.getDate()} ${mon[d.getMonth()]} ${d.getFullYear()}, ${days[d.getDay()]}, ${pad(h)}:${pad(d.getMinutes())}:${pad(d.getSeconds())} ${ap}`;
+  }
+  tick();
+  setInterval(tick, 1000);
 }
 
 function buildUploadGrid() {
@@ -1094,7 +1273,7 @@ function buildUploadGrid() {
          onclick="triggerFileInput('${p.id}')">
       <div class="p-logo">${p.logo}</div>
       <div class="p-hint">${p.hint}</div>
-      <input type="file" id="fi-${p.id}"
+      <input type="file" id="fi-${p.id}" multiple
              accept=".csv,.txt,.xlsx,.xls,.tsv"
              onchange="handleFile(event,'${p.id}')"
              onclick="event.stopPropagation()">
@@ -1129,25 +1308,35 @@ function buildFilterPills() {
 //  FILE HANDLING
 // ═══════════════════════════════════════════════
 async function handleFile(event, platformId) {
-  const file = event.target.files[0];
-  if (!file) return;
-  const existing = uploadedFiles.findIndex(f => f.platformId === platformId);
-  if (existing >= 0) uploadedFiles.splice(existing, 1);
+  const files = Array.from(event.target.files || []);
+  if (!files.length) return;
 
   showProgress(true);
-  try {
-    const result = await readFile(file);
-    const { headers, data } = result;
-    const fid = platformId + '_' + Date.now();
-    uploadedFiles.push({ platformId, fileName: file.name, headers, data,
-                         _isFlipkart: result._isFlipkart || false, id: fid });
-    updateBadges();
-    renderFileChips();
-    buildMappingPanel();
-    showToast(`${file.name} loaded — ${data.length} rows`, 'success');
-  } catch(e) {
-    showToast('Error reading file: ' + e.message, 'error');
+  let loaded = 0, failed = 0, rows = 0;
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
+    // Re-uploading the same file (same platform + name) replaces the old copy;
+    // otherwise the file is ADDED — multiple files per platform are supported.
+    const dup = uploadedFiles.findIndex(f => f.platformId === platformId && f.fileName === file.name);
+    if (dup >= 0) uploadedFiles.splice(dup, 1);
+    try {
+      const result = await readFile(file);
+      const { headers, data } = result;
+      const fid = platformId + '_' + Date.now() + '_' + i;
+      uploadedFiles.push({ platformId, fileName: file.name, headers, data,
+                           _isFlipkart: result._isFlipkart || false,
+                           _isMeesho: result._isMeesho || false, id: fid });
+      loaded++; rows += data.length;
+    } catch(e) {
+      failed++;
+      showToast('Error reading ' + file.name + ': ' + e.message, 'error');
+    }
   }
+  updateBadges();
+  renderFileChips();
+  buildMappingPanel();
+  saveState();
+  if (loaded) showToast(`${loaded} file(s) loaded — ${rows} rows${failed ? ', ' + failed + ' failed' : ''}`, 'success');
   showProgress(false);
   event.target.value = '';
 }
@@ -1180,16 +1369,27 @@ function readFile(file) {
     } else {
       reader.onload = e => {
         const wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array', cellDates: true });
-        // Try "Orders" sheet for Flipkart; otherwise use first sheet
-        const sheetName = wb.SheetNames.includes('Orders') ? 'Orders' : wb.SheetNames[0];
+        // Pick the data sheet: Meesho → "Order Payments", Flipkart → "Orders",
+        // else the first non-"Disclaimer" payment/settlement sheet, else the first sheet.
+        const names = wb.SheetNames;
+        const sheetName =
+          names.find(n => /order\s*payment/i.test(n)) ||
+          (names.includes('Orders') ? 'Orders' : null) ||
+          names.find(n => /(payment|settlement|transaction|sales|order)/i.test(n) && !/disclaimer/i.test(n)) ||
+          names.find(n => !/disclaimer/i.test(n)) ||
+          names[0];
         const ws = wb.Sheets[sheetName];
         const raw = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '', raw: false });
         if (raw.length < 1) return reject(new Error('Empty sheet'));
 
-        // ── Flipkart detection: row 0 = "Payment Details" group header, row 1 = real headers ──
-        const row0vals = raw[0].map(c => String(c||'').trim());
+        const row0vals = (raw[0] || []).map(c => String(c||'').trim());
+        const row1vals = (raw[1] || []).map(c => String(c||'').trim());
+
+        // ── Flipkart: row 0 = "Payment Details" group header, row 1 = real headers ──
         const isFlipkartXlsx = row0vals[0] === 'Payment Details' &&
           raw.length > 1 && raw[1].some(c => String(c||'').trim() === 'NEFT ID');
+        // ── Meesho: row 0 = section groups ("Order Related Details"…), row 1 = real headers ──
+        const isMeeshoXlsx = row0vals.includes('Order Related Details') || row1vals.includes('Sub Order No');
 
         let headerIdx = 0;
         let dataStart  = 1;
@@ -1197,6 +1397,9 @@ function readFile(file) {
         if (isFlipkartXlsx) {
           headerIdx = 1;  // row 1 has real column names
           dataStart = 3;  // row 2 is a sub-header row ("Total (Rs.)" etc.), data starts at row 3
+        } else if (isMeeshoXlsx) {
+          headerIdx = 1;  // row 1 = section groups, row 2 = real column names
+          dataStart = 2;  // row 3 is a formula/legend row — skipped automatically (blank Sub Order No)
         } else {
           // Generic: find first row with > 2 non-empty cells
           for (let i = 0; i < Math.min(8, raw.length); i++) {
@@ -1215,7 +1418,7 @@ function readFile(file) {
             return o;
           }, {})
         ).filter(row => Object.values(row).some(v => v.trim() !== '')); // skip blank rows
-        resolve({ headers, data, _isFlipkart: isFlipkartXlsx });
+        resolve({ headers, data, _isFlipkart: isFlipkartXlsx, _isMeesho: isMeeshoXlsx });
       };
       reader.onerror = () => reject(new Error('File read error'));
       reader.readAsArrayBuffer(file);
@@ -1263,6 +1466,7 @@ function removeFile(id) {
   updateBadges();
   renderFileChips();
   buildMappingPanel();
+  saveState();
 }
 
 function showProgress(show) {
@@ -1302,44 +1506,49 @@ const mappings = {};
 function buildMappingPanel() {
   const panel = document.getElementById('mappingPanel');
   const tabs  = document.getElementById('mappingTabs');
+  const grid  = document.getElementById('mappingGrid');
   if (uploadedFiles.length === 0) { panel.classList.remove('visible'); return; }
   panel.classList.add('visible');
 
-  // Build tabs
-  tabs.innerHTML = uploadedFiles.map((f, i) => {
+  // Only files that AREN'T auto-detected need a manual mapping tab.
+  const manualFiles = uploadedFiles.filter(f => !fileAutoParsed(f));
+
+  tabs.innerHTML = manualFiles.map((f, i) => {
     const p = PLATFORMS.find(pl => pl.id === f.platformId);
+    const short = f.fileName.length > 18 ? f.fileName.slice(0, 16) + '…' : f.fileName;
     return `<div class="mapping-tab${i===0?' active':''}" onclick="switchMappingTab('${f.id}')" id="mtab-${f.id}">
-      <span style="display:inline-flex;align-items:center;height:18px;vertical-align:middle;margin-right:5px">${p.logo}</span>${p.name}
+      <span style="display:inline-flex;align-items:center;height:18px;vertical-align:middle;margin-right:5px">${p.logo}</span>${p.name} · ${short}
     </div>`;
   }).join('');
 
-  // Init mappings
-  uploadedFiles.forEach(f => {
-    if (!mappings[f.id]) mappings[f.id] = autoMap(f);
-  });
+  manualFiles.forEach(f => { if (!mappings[f.id]) mappings[f.id] = autoMap(f); });
 
-  activeMapping = uploadedFiles[0].id;
-  renderMappingGrid(activeMapping);
+  if (manualFiles.length) {
+    activeMapping = manualFiles[0].id;
+    renderMappingGrid(activeMapping);
+  } else {
+    activeMapping = null;
+    grid.innerHTML = `<div style="font-size:12px;color:var(--text-dim);padding:4px 0">
+      All loaded files are auto-detected — no manual column mapping needed. Just press
+      <strong>Parse &amp; Calculate Settlements</strong>.</div>`;
+  }
 
-  // Show/hide platform auto-detect notice
+  // Auto-detect summary notice
   const notice = document.getElementById('amazonNotice');
   if (notice) {
-    const hasAmazon   = uploadedFiles.some(f => f.platformId === 'amazon'   && isAmazonPaymentReport(f.headers));
-    const hasFlipkart = uploadedFiles.some(f => f.platformId === 'flipkart' && isFlipkartPaymentReport(f));
-    if (hasFlipkart) {
-      notice.style.background  = 'rgba(40,116,240,0.08)';
-      notice.style.borderColor = 'rgba(40,116,240,0.3)';
-      notice.style.color       = '#2874f0';
-      notice.innerHTML = '<strong>⚡ Flipkart Payment Report detected</strong> — auto-aggregation mode active.<br>' +
-        'Net = <code>Bank Settlement Value (Rs.)</code> per order. ' +
-        'Courier = <code>Reverse Shipping Fee</code> (eKart return pickup charged to seller). ' +
-        'Customer forward delivery (eKart) is paid by buyer — not a seller deduction.';
-      notice.style.display = 'block';
-    } else if (hasAmazon) {
-      notice.style.background  = 'rgba(255,153,0,0.08)';
-      notice.style.borderColor = 'rgba(255,153,0,0.3)';
-      notice.style.color       = '#FF9900';
-      notice.innerHTML = '<strong>⚡ Amazon Payment Report detected</strong> — auto-aggregation mode active.<br>Net settlement computed as: <code>Σ price-amount + Σ item-related-fee-amount</code> per order-id. No manual mapping needed.';
+    const amz = uploadedFiles.filter(f => f.platformId === 'amazon'   && fileAutoParsed(f)).length;
+    const fk  = uploadedFiles.filter(f => f.platformId === 'flipkart' && fileAutoParsed(f)).length;
+    const msh = uploadedFiles.filter(f => f.platformId === 'meesho'   && fileAutoParsed(f)).length;
+    const bits = [];
+    if (amz) bits.push(`<strong>${amz} Amazon settlement file${amz>1?'s':''}</strong> (net = Σ amount per order-id)`);
+    if (fk)  bits.push(`<strong>${fk} Flipkart payment file${fk>1?'s':''}</strong> (net = Bank Settlement Value)`);
+    if (msh) bits.push(`<strong>${msh} Meesho payment file${msh>1?'s':''}</strong> (net = Final Settlement Amount)`);
+    if (bits.length) {
+      notice.style.background  = 'rgba(0,212,240,0.06)';
+      notice.style.borderColor = 'var(--border)';
+      notice.style.color       = 'var(--text-dim)';
+      notice.innerHTML = '⚡ Auto-detected ' + bits.join(' · ') +
+        '. No manual mapping needed — press Parse. Customer forward shipping is paid by the buyer; only seller-borne fees are deducted.';
       notice.style.display = 'block';
     } else {
       notice.style.display = 'none';
@@ -1412,16 +1621,33 @@ function renderMappingGrid(fileId) {
 function updateMapping(fileId, fieldKey, val) {
   if (!mappings[fileId]) mappings[fileId] = {};
   mappings[fileId][fieldKey] = val;
+  saveState();
 }
 
 // ═══════════════════════════════════════════════
 //  PARSE & CALCULATE
 // ═══════════════════════════════════════════════
 
-// Detect if a file is an Amazon Payment Report by checking for settlement-id + price-type columns
+// Detect the Amazon "Date Range / V2 Flat File" settlement report
+// (columns: settlement-id, amount-type, amount-description, amount, order-id …)
+function isAmazonSettlementV2(headers) {
+  const h = headers.map(x => x.toLowerCase().trim());
+  return h.includes('settlement-id') && h.includes('amount-type') &&
+         h.includes('amount-description') && h.includes('amount');
+}
+
+// Detect the legacy Amazon Payment Report (settlement-id + price-type columns)
 function isAmazonPaymentReport(headers) {
   const h = headers.map(x => x.toLowerCase().trim());
   return h.includes('settlement-id') && h.includes('price-type');
+}
+
+// True when a file is recognised by a dedicated parser and needs no manual column mapping.
+function fileAutoParsed(f) {
+  if (f.platformId === 'amazon')   return isAmazonSettlementV2(f.headers) || isAmazonPaymentReport(f.headers);
+  if (f.platformId === 'flipkart') return isFlipkartPaymentReport(f);
+  if (f.platformId === 'meesho')   return isMeeshoPaymentReport(f);
+  return false;
 }
 
 function parseAll() {
@@ -1433,7 +1659,13 @@ function parseAll() {
   uploadedFiles.forEach(f => {
     const p = PLATFORMS.find(pl => pl.id === f.platformId);
 
-    // ── Amazon Payment Report: special multi-column aggregation ──────
+    // ── Amazon Date-Range / V2 settlement report (amount / amount-description) ──
+    if (p.id === 'amazon' && isAmazonSettlementV2(f.headers)) {
+      parseAmazonSettlementV2(f, p, today, settleDays);
+      return;
+    }
+
+    // ── Amazon Payment Report: legacy multi-column aggregation ──────
     if (p.id === 'amazon' && isAmazonPaymentReport(f.headers)) {
       parseAmazonPaymentReport(f, p, today, settleDays);
       return;
@@ -1442,6 +1674,12 @@ function parseAll() {
     // ── Flipkart Payment Report: Bank Settlement Value aggregation ──
     if (p.id === 'flipkart' && isFlipkartPaymentReport(f)) {
       parseFlipkartPaymentReport(f, p, today, settleDays);
+      return;
+    }
+
+    // ── Meesho Payment Report: Final Settlement Amount per sub-order ──
+    if (p.id === 'meesho' && isMeeshoPaymentReport(f)) {
+      parseMeeshoPaymentReport(f, p, today, settleDays);
       return;
     }
 
@@ -1498,6 +1736,10 @@ function parseAll() {
         fees:          r.fees,
         courierCharge: r.courier || 0,
         netSettlement: net,
+        feeBreakdown:  {
+          shipping: r.courier ? -Math.abs(r.courier) : 0,
+          other:    r.fees    ? -Math.abs(r.fees)    : 0
+        },
         settlementDate: settDate ? fmtDate(settDate) : r.settDateRaw,
         status, daysSince,
         daysUntilSettle: daysSince !== null ? Math.max(0, settleDays - daysSince) : null
@@ -1520,10 +1762,159 @@ function parseAll() {
   renderDashboard();
   document.getElementById('dashTitle').style.display = '';
   document.getElementById('tableSection').style.display = '';
+  document.getElementById('lookupSection').style.display = '';
   updateExportBtn();
+  saveState();
 }
 
-// ── Amazon Payment Report aggregator ─────────────────────────────────────────
+// ── Amazon Date-Range / V2 settlement report parser ──────────────────────────
+// Format: 1 header row + 1 settlement-summary row (deposit-date, total-amount)
+//         + N transaction-component rows, each with amount-type / amount-description / amount.
+// Net per order  = SUM(amount) over all rows sharing that order-id  (reconciles to deposit).
+// Rows with no order-id (Storage / Inbound / Removal / Debt) → one settlement-level entry.
+// ─────────────────────────────────────────────────────────────────────────────
+// Classify one settlement line by its amount-description / amount-type.
+// Returns { income, gross } for customer-paid components, or { bucket } for deductions.
+function amzV2Classify(desc, atype) {
+  const d = (desc || '').toLowerCase();
+  const a = (atype || '').toLowerCase();
+  // Customer-paid components (income — not a seller cost)
+  if (d === 'principal')                              return { income: true, gross: true };
+  if (d === 'product tax')                            return { income: true, gross: true };
+  if (d === 'shipping' || d === 'shipping tax')       return { income: true };
+  if (d.includes('shipping discount') || d.includes('shipping tax discount')) return { income: true };
+  // Taxes withheld at source
+  if (a === 'itemtcs' || d.indexOf('tcs') === 0)      return { bucket: 'tcs' };
+  if (d.indexOf('tds') === 0)                         return { bucket: 'tds' };
+  // Platform fees
+  if (d.includes('refund commission'))                return { bucket: 'refundAdmin' };
+  if (d.includes('commission'))                       return { bucket: 'referral' };
+  if (d.includes('closing'))                          return { bucket: 'closing' };
+  if (d.includes('easy ship') || d.includes('mfnpostage') ||
+      d.includes('weight handling fee reversal'))     return { bucket: 'shipping' };
+  if (d.includes('weight handling') || d.includes('pick & pack') ||
+      d.includes('pick and pack') || d.includes('fulfil'))  return { bucket: 'fulfilment' };
+  if (d.includes('storage'))                          return { bucket: 'warehouse' };
+  if (d.includes('removal') || d.includes('disposal'))   return { bucket: 'removalDisposal' };
+  if (d.includes('inbound'))                          return { bucket: 'fulfilment' };
+  // Reimbursements, reserves, debt adjustments, etc.
+  return { bucket: 'other' };
+}
+
+function parseAmazonSettlementV2(f, p, today, settleDays) {
+  const num = v => { const n = parseFloat(String(v == null ? '' : v).replace(/,/g, '')); return isNaN(n) ? 0 : n; };
+
+  // Settlement-summary row carries deposit-date & total-amount but no per-line amount
+  let depositDate = '';
+  const sumRow = f.data.find(r => (r['deposit-date'] || '').trim() && !String(r['amount'] || '').trim());
+  if (sumRow) depositDate = sumRow['deposit-date'] || '';
+  if (!depositDate) { const dr = f.data.find(r => (r['deposit-date'] || '').trim()); if (dr) depositDate = dr['deposit-date'] || ''; }
+  const settIdRow = f.data.find(r => (r['settlement-id'] || '').trim());
+  const settId = settIdRow ? (settIdRow['settlement-id'] || '').trim() : '';
+
+  const byOrder = {};
+  let   settleLevel = 0;          // amounts with no order-id (storage / inbound / debt)
+  const settleLevelFb = {};
+
+  f.data.forEach(row => {
+    const amtRaw = String(row['amount'] == null ? '' : row['amount']).trim();
+    if (amtRaw === '') return;                 // summary row & blanks
+    const amt   = num(amtRaw);
+    const oid   = (row['order-id'] || '').trim();
+    const desc  = (row['amount-description'] || '').trim();
+    const atype = (row['amount-type'] || '').trim();
+    const ttype = (row['transaction-type'] || '').trim().toLowerCase();
+    const cls   = amzV2Classify(desc, atype);
+
+    if (!oid) {                                 // settlement-level, not per-order
+      settleLevel += amt;
+      if (cls.bucket) addFee(settleLevelFb, cls.bucket, amt);
+      return;
+    }
+
+    if (!byOrder[oid]) byOrder[oid] = { orderId: oid, net: 0, gross: 0, principal: 0, tax: 0,
+                                        fb: {}, date: '', qty: 0, skus: [], hasRefund: false, hasSale: false };
+    const o = byOrder[oid];
+    o.net += amt;
+    if (ttype === 'refund') o.hasRefund = true;
+    if (ttype === 'order')  o.hasSale = true;
+
+    if (cls.income) {
+      if (cls.gross && amt > 0) {
+        o.gross += amt;
+        const dl = desc.toLowerCase();
+        if (dl === 'principal')   o.principal += amt;   // item price before GST
+        if (dl === 'product tax') o.tax       += amt;   // GST collected from buyer
+      }
+    } else if (cls.bucket) addFee(o.fb, cls.bucket, amt);
+
+    if (desc.toLowerCase() === 'principal') {
+      const q = parseInt(row['quantity-purchased']) || 0;
+      if (q) o.qty += q;
+      const sku = (row['sku'] || '').trim();
+      if (sku && o.skus.indexOf(sku) === -1) o.skus.push(sku);
+    }
+    if (!o.date && row['posted-date']) o.date = row['posted-date'];
+  });
+
+  const orders   = Object.values(byOrder);
+  const settDate = depositDate ? parseDate(depositDate) : null;
+
+  orders.forEach((o, idx) => {
+    const orderDate = parseDate(o.date);
+    const daysSince = orderDate ? Math.floor((today - orderDate) / 86400000) : null;
+    const feeSum    = Object.values(o.fb).reduce((s, v) => s + v, 0);   // signed (mostly negative)
+
+    let status = 'Settled';                     // these reports are already deposited
+    if (o.hasRefund && o.net <= 0.5) status = 'Returned';
+
+    const product = o.skus.length
+      ? (o.skus[0] + (o.skus.length > 1 ? ` (+${o.skus.length - 1} more)` : ''))
+      : '—';
+
+    allOrders.push({
+      _id:           idx + '_amz_' + f.id,
+      platform:      p.name, platformId: p.id, platformColor: p.color,
+      orderId:       o.orderId,
+      orderDate:     orderDate ? fmtDate(orderDate) : o.date,
+      product:       product,
+      sku:           o.skus[0] || '—',
+      qty:           o.qty || '—',
+      sellingPrice:  parseFloat(o.gross.toFixed(2)),
+      priceBreakup:  { principal: parseFloat(o.principal.toFixed(2)), tax: parseFloat(o.tax.toFixed(2)) },
+      fees:          parseFloat(Math.abs(feeSum).toFixed(2)),
+      courierCharge: parseFloat(Math.abs(o.fb.shipping || 0).toFixed(2)),
+      netSettlement: parseFloat(o.net.toFixed(2)),
+      feeBreakdown:  o.fb,
+      settlementDate: settDate ? fmtDate(settDate) : depositDate,
+      status, daysSince,
+      daysUntilSettle: daysSince !== null ? Math.max(0, settleDays - daysSince) : null
+    });
+  });
+
+  // Settlement-level charges (storage / inbound / removal / debt) → one synthetic entry so totals reconcile
+  if (Math.abs(settleLevel) > 0.005) {
+    allOrders.push({
+      _id:           'settle_' + f.id,
+      platform:      p.name, platformId: p.id, platformColor: p.color,
+      orderId:       'SETTLEMENT-LEVEL · ' + (settId || f.fileName),
+      orderDate:     settDate ? fmtDate(settDate) : depositDate,
+      product:       'Storage / Inbound / Removal / Adjustments (not per-order)',
+      sku:           '—', qty: '—',
+      sellingPrice:  0,
+      fees:          parseFloat(Math.abs(Object.values(settleLevelFb).reduce((s, v) => s + v, 0)).toFixed(2)),
+      courierCharge: 0,
+      netSettlement: parseFloat(settleLevel.toFixed(2)),
+      feeBreakdown:  settleLevelFb,
+      settlementDate: settDate ? fmtDate(settDate) : depositDate,
+      status:        'Settled', daysSince: null, daysUntilSettle: null
+    });
+  }
+
+  showToast(`Amazon ${f.fileName}: ${orders.length} orders` + (settId ? ` · settlement ${settId}` : ''), 'success');
+}
+
+// ── Amazon Payment Report aggregator (legacy price-type format) ───────────────
 // Format: one header row + N transaction-component rows per order
 // Income columns  : price-amount (positive = income, negative = TCS/TDS)
 // Fee columns     : item-related-fee-amount (negative), shipment-fee-amount (neg), misc-fee-amount
@@ -1551,6 +1942,7 @@ function parseAmazonPaymentReport(f, p, today, settleDays) {
         deductions: 0,   // negative price-amounts (TCS, TDS)
         fees:       0,   // all item-related fees
         courier:    0,   // FBA/EasyShip courier component only
+        fb:         {},  // itemised fee breakdown by category
         date: '', sku: '', qty: ''
       };
     }
@@ -1560,11 +1952,19 @@ function parseAmazonPaymentReport(f, p, today, settleDays) {
     const pa = parseFloat(row['price-amount'] || '0') || 0;
     if (pa > 0) o.income     += pa;
     else        o.deductions += pa;
+    // Negative price-amounts that are TCS / TDS get itemised by price-type
+    if (pa < 0) {
+      const ptype = (row['price-type'] || '').toLowerCase();
+      if      (ptype.includes('tcs')) addFee(o.fb, 'tcs', pa);
+      else if (ptype.includes('tds')) addFee(o.fb, 'tds', pa);
+      else                            addFee(o.fb, 'other', pa);
+    }
 
     // item-related-fee-amount — split into courier vs platform
     const ifa   = parseFloat(row['item-related-fee-amount'] || '0') || 0;
     const ftype = (row['item-related-fee-type'] || '').toLowerCase();
     o.fees += ifa;
+    addFee(o.fb, amzFeeBucket(ftype), ifa);   // itemise by Amazon fee-type
     if (AMZ_COURIER_KW.some(kw => ftype.includes(kw))) {
       o.courier += ifa;  // negative value
     }
@@ -1573,6 +1973,7 @@ function parseAmazonPaymentReport(f, p, today, settleDays) {
     const sfa = parseFloat(row['shipment-fee-amount'] || '0') || 0;
     o.fees    += sfa;
     o.courier += sfa;
+    addFee(o.fb, 'shipping', sfa);
 
     // ── CRITICAL: other-amount holds Easy Ship / ATS charges ──────────────
     // transaction-type = "Amazon Easy Ship Charges" stores the fee in other-amount
@@ -1583,13 +1984,17 @@ function parseAmazonPaymentReport(f, p, today, settleDays) {
       // Add to fees (deduction from net) and to courier separately
       o.fees    += otherAmt;  // negative
       o.courier += otherAmt;  // negative
+      addFee(o.fb, 'shipping', otherAmt);
     } else if (txType !== 'previous reserve amount balance') {
       // Include other misc amounts (but NOT the reserve balance carry-over)
       o.fees += otherAmt;
+      addFee(o.fb, 'other', otherAmt);
     }
 
     // misc-fee-amount
-    o.fees += (parseFloat(row['misc-fee-amount'] || '0') || 0);
+    const mfa = parseFloat(row['misc-fee-amount'] || '0') || 0;
+    o.fees += mfa;
+    addFee(o.fb, 'other', mfa);
 
     if (!o.date && row['posted-date'])        o.date = row['posted-date'];
     if (!o.sku  && row['sku'])                o.sku  = row['sku'];
@@ -1633,6 +2038,7 @@ function parseAmazonPaymentReport(f, p, today, settleDays) {
       fees:          parseFloat(Math.abs(o.fees + o.deductions).toFixed(2)),
       courierCharge: parseFloat(Math.abs(o.courier).toFixed(2)),
       netSettlement: parseFloat(net.toFixed(2)),
+      feeBreakdown:  o.fb,
       settlementDate:settDate ? fmtDate(settDate) : depositDate,
       status,
       daysSince,
@@ -1681,6 +2087,14 @@ function parseFlipkartPaymentReport(f, p, today, settleDays) {
     pickPackFee: findCol('Pick And Pack Fee (Rs.)', 'Pick And Pack Fee'),
     // Collection Fee = COD payment collection fee, goes into fees (not courier)
     collFee:     findCol('Collection Fee (Rs.)', 'Collection Fee'),
+    // Itemised leaf fee columns (indicative breakdown for the lookup card)
+    commission:  findCol('Commission (Rs.)', 'Commission'),
+    fixedFee:    findCol('Fixed Fee (Rs.)', 'Fixed Fee'),
+    cancelFee:   findCol('Cancellation Fee (Rs.)', 'Cancellation Fee'),
+    penaltyFee:  findCol('Penalty (Rs.)', 'Penalty'),
+    gstFee:      findCol('GST on Marketplace Fee', 'GST on Fee', 'Total GST (Rs.)'),
+    tcsCol:      findCol('TCS (Rs.)', 'TCS Amount', 'TCS'),
+    tdsCol:      findCol('TDS (Rs.)', 'TDS Amount', 'TDS'),
     returnType:  findCol('Return Type'),
     itemReturn:  findCol('Item Return Status'),
   };
@@ -1700,7 +2114,7 @@ function parseFlipkartPaymentReport(f, p, today, settleDays) {
 
     if (!byOrder[oid]) {
       byOrder[oid] = {
-        orderId: oid, net: 0, sale: 0, fees: 0, courier: 0,
+        orderId: oid, net: 0, sale: 0, fees: 0, courier: 0, fb: {},
         sku: '', product: '', qty: '', orderDate: '', settleDate: '', returnType: '', itemReturn: ''
       };
     }
@@ -1716,6 +2130,19 @@ function parseFlipkartPaymentReport(f, p, today, settleDays) {
     // Collection Fee = COD payment collection charge (not courier).
     o.courier += getnum(row, COL.revShipFee);   // eKart return pickup — seller's cost
     o.courier += getnum(row, COL.pickPackFee);  // pick & pack if applicable
+
+    // ── Itemised breakdown (stored as negative deductions) ──
+    addFee(o.fb, 'referral',        -Math.abs(getnum(row, COL.commission)));
+    addFee(o.fb, 'fixed',           -Math.abs(getnum(row, COL.fixedFee)));
+    addFee(o.fb, 'collection',      -Math.abs(getnum(row, COL.collFee)));
+    addFee(o.fb, 'shipping',        -Math.abs(getnum(row, COL.shipFee)));
+    addFee(o.fb, 'reverseShipping', -Math.abs(getnum(row, COL.revShipFee)));
+    addFee(o.fb, 'pickup',          -Math.abs(getnum(row, COL.pickPackFee)));
+    addFee(o.fb, 'cancellation',    -Math.abs(getnum(row, COL.cancelFee)));
+    addFee(o.fb, 'penalty',         -Math.abs(getnum(row, COL.penaltyFee)));
+    addFee(o.fb, 'gst',             -Math.abs(getnum(row, COL.gstFee)));
+    addFee(o.fb, 'tcs',             -Math.abs(getnum(row, COL.tcsCol)));
+    addFee(o.fb, 'tds',             -Math.abs(getnum(row, COL.tdsCol)));
 
     // Metadata — first non-empty wins
     if (!o.sku        && COL.sku)        o.sku        = getv(row, COL.sku);
@@ -1765,6 +2192,8 @@ function parseFlipkartPaymentReport(f, p, today, settleDays) {
       fees:          parseFloat(Math.abs(o.fees).toFixed(2)),
       courierCharge: parseFloat(Math.abs(o.courier).toFixed(2)),
       netSettlement: parseFloat(o.net.toFixed(2)),
+      // If no leaf fee columns were found, fall back to the aggregate marketplace fee
+      feeBreakdown:  Object.keys(o.fb).length ? o.fb : { other: -Math.abs(o.fees) },
       settlementDate:settDate ? fmtDate(settDate) : o.settleDate,
       status, daysSince,
       daysUntilSettle: daysSince !== null ? Math.max(0, settleDays - daysSince) : null
@@ -1772,6 +2201,119 @@ function parseFlipkartPaymentReport(f, p, today, settleDays) {
   });
 
   showToast(`Flipkart: ${f.data.length} rows → ${orders.length} orders (₹${orders.reduce((s,o)=>s+o.net,0).toFixed(2)} net)`, 'success');
+}
+
+// ── Meesho Payment Report parser ─────────────────────────────────────────────
+// Sheet "Order Payments": row 1 = section groups, row 2 = headers, row 3 = formulas,
+// data from row 4. One row per sub-order. Net = "Final Settlement Amount" (column N).
+// Fee columns are already signed (negatives = deductions); gross = Total Sale Amount.
+// ─────────────────────────────────────────────────────────────────────────────
+function isMeeshoPaymentReport(f) {
+  return f._isMeesho === true ||
+    f.headers.some(h => h.trim() === 'Sub Order No') ||
+    f.headers.some(h => h.indexOf('Final Settlement Amount') >= 0);
+}
+
+function parseMeeshoPaymentReport(f, p, today, settleDays) {
+  const H = f.headers;
+  const findCol = (...cands) =>
+    H.find(h => cands.some(c => h.trim().toLowerCase() === c.toLowerCase().trim())) ||
+    H.find(h => cands.some(c => h.toLowerCase().includes(c.toLowerCase()))) || null;
+
+  const COL = {
+    orderId:     findCol('Sub Order No'),
+    orderDate:   findCol('Order Date'),
+    product:     findCol('Product Name'),
+    sku:         findCol('Supplier SKU', 'SKU'),
+    status:      findCol('Live Order Status', 'Order Status'),
+    qty:         findCol('Quantity'),
+    settleDate:  findCol('Payment Date'),
+    net:         findCol('Final Settlement Amount'),
+    gross:       findCol('Total Sale Amount (Incl. Shipping & GST)', 'Total Sale Amount'),
+    commission:  findCol('Meesho Commission (Incl. GST)', 'Meesho Commission'),
+    fixed:       findCol('Fixed Fee (Incl. GST)', 'Fixed Fee'),
+    warehousing: findCol('Warehousing fee (Incl. GST)', 'Warehousing fee'),
+    returnShip:  findCol('Return Shipping Charge (Incl. GST)', 'Return Shipping Charge'),
+    shipping:    findCol('Shipping Charge (Incl. GST)', 'Shipping Charge'),
+    gold:        findCol('Meesho gold platform fee (Incl. GST)', 'gold platform fee'),
+    mall:        findCol('Meesho mall platform fee (Incl. GST)', 'mall platform fee'),
+    otherSvc:    findCol('Net Other Support Service Charges (Excl. GST)', 'Net Other Support Service Charges'),
+    otherSvcGst: findCol('GST on Net Other Support Service Charges'),
+    tcs:         findCol('TCS'),
+    tds:         findCol('TDS')
+  };
+
+  const getv   = (row, col) => col ? String(row[col] || '').trim() : '';
+  const getnum = (row, col) => { const v = getv(row, col); if (!v) return 0; const n = parseFloat(v.replace(/,/g, '')); return isNaN(n) ? 0 : n; };
+
+  const byOrder = {};
+  f.data.forEach(row => {
+    const oid = getv(row, COL.orderId);
+    if (!oid) return;                          // skips the formula/legend row (blank Sub Order No)
+    if (!byOrder[oid]) byOrder[oid] = { orderId: oid, net: 0, gross: 0, fb: {},
+                                        sku: '', product: '', qty: '', orderDate: '', settleDate: '', status: '' };
+    const o = byOrder[oid];
+    o.net   += getnum(row, COL.net);           // authoritative bank credit
+    o.gross += getnum(row, COL.gross);
+    // Fee columns are already signed (deductions are negative) — add as-is.
+    addFee(o.fb, 'referral',        getnum(row, COL.commission));
+    addFee(o.fb, 'fixed',           getnum(row, COL.fixed));
+    addFee(o.fb, 'warehouse',       getnum(row, COL.warehousing));
+    addFee(o.fb, 'reverseShipping', getnum(row, COL.returnShip));
+    addFee(o.fb, 'shipping',        getnum(row, COL.shipping));
+    addFee(o.fb, 'advertising',     getnum(row, COL.otherSvc) + getnum(row, COL.otherSvcGst));
+    addFee(o.fb, 'other',           getnum(row, COL.gold) + getnum(row, COL.mall));
+    addFee(o.fb, 'tcs',             getnum(row, COL.tcs));
+    addFee(o.fb, 'tds',             getnum(row, COL.tds));
+
+    if (!o.sku)        o.sku        = getv(row, COL.sku);
+    if (!o.product)    o.product    = getv(row, COL.product);
+    if (!o.qty)        o.qty        = getv(row, COL.qty);
+    if (!o.orderDate)  o.orderDate  = getv(row, COL.orderDate);
+    if (!o.settleDate) o.settleDate = getv(row, COL.settleDate);
+    if (!o.status)     o.status     = getv(row, COL.status);
+  });
+
+  const orders = Object.values(byOrder);
+  if (orders.length === 0) { showToast('Meesho: no sub-orders found — check file format', 'error'); return; }
+
+  orders.forEach((o, idx) => {
+    const orderDate = parseDate(o.orderDate);
+    const settDate  = parseDate(o.settleDate);
+    const daysSince = orderDate ? Math.floor((today - orderDate) / 86400000) : null;
+
+    const s = (o.status || '').toLowerCase();
+    let status = 'Settled';                     // "previous payment" files are already paid
+    if (s.includes('cancel'))                                   status = 'Cancelled';
+    else if (s.includes('rto') || s.includes('return') || s.includes('rvp')) status = 'Returned';
+    else if (s.includes('deliver'))                             status = 'Settled';
+    else if (settDate && settDate <= today)                     status = 'Settled';
+    else if (o.net > 0)                                         status = 'Settled';
+    else                                                        status = 'Pending';
+
+    const feeSum  = Object.values(o.fb).reduce((sum, v) => sum + v, 0);
+    const courier = Math.abs(o.fb.shipping || 0) + Math.abs(o.fb.reverseShipping || 0);
+
+    allOrders.push({
+      _id:           idx + '_msh_' + f.id,
+      platform:      p.name, platformId: p.id, platformColor: p.color,
+      orderId:       o.orderId,
+      orderDate:     orderDate ? fmtDate(orderDate) : o.orderDate,
+      product:       o.product || o.sku || '—',
+      sku:           o.sku || '—',
+      qty:           o.qty || '—',
+      sellingPrice:  parseFloat(o.gross.toFixed(2)),
+      fees:          parseFloat(Math.abs(feeSum).toFixed(2)),
+      courierCharge: parseFloat(courier.toFixed(2)),
+      netSettlement: parseFloat(o.net.toFixed(2)),
+      feeBreakdown:  o.fb,
+      settlementDate: settDate ? fmtDate(settDate) : o.settleDate,
+      status, daysSince,
+      daysUntilSettle: daysSince !== null ? Math.max(0, settleDays - daysSince) : null
+    });
+  });
+
+  showToast(`Meesho ${f.fileName}: ${orders.length} sub-orders (₹${orders.reduce((s, o) => s + o.net, 0).toFixed(2)} net)`, 'success');
 }
 
 // Shared status detection logic
@@ -2117,7 +2659,11 @@ function clearAll() {
   document.getElementById('dashboard').innerHTML = '';
   document.getElementById('dashTitle').style.display = 'none';
   document.getElementById('tableSection').style.display = 'none';
+  document.getElementById('lookupSection').style.display = 'none';
+  document.getElementById('lookupResult').innerHTML = '';
+  document.getElementById('lookupInput').value = '';
   document.getElementById('exportBtn').disabled = true;
+  idbClear();                       // also wipe the saved session so refresh stays empty
   showToast('All data cleared', 'info');
 }
 
@@ -2167,6 +2713,222 @@ function fmtDate(d) {
 function fmt(n) {
   if (n === 0 || n === undefined || n === null) return '0';
   return parseFloat(n.toFixed(2)).toLocaleString('en-IN');
+}
+
+// ═══════════════════════════════════════════════
+//  ORDER LOOKUP — COST & PROFIT BREAKDOWN
+// ═══════════════════════════════════════════════
+// Display order + labels for every platform charge we try to itemise.
+const FEE_CATEGORIES = [
+  ['referral',        'Referral / Commission fee'],
+  ['closing',         'Closing fee'],
+  ['fixed',           'Fixed fee'],
+  ['shipping',        'Shipping / Courier fee (forward)'],
+  ['reverseShipping', 'Reverse shipping fee'],
+  ['pickup',          'Pick-up / Pick &amp; Pack fee'],
+  ['collection',      'Collection fee'],
+  ['cod',             'COD charges'],
+  ['fulfilment',      'Fulfilment fee'],
+  ['warehouse',       'Warehouse / Storage fee'],
+  ['longTermStorage', 'Long-term storage fee'],
+  ['removalDisposal', 'Removal / Disposal fee'],
+  ['refundAdmin',     'Refund administration fee'],
+  ['advertising',     'Advertising charges'],
+  ['cancellation',    'Cancellation charges'],
+  ['penalty',         'Penalty fee'],
+  ['gst',             'GST on platform fee'],
+  ['tcs',             'TCS (tax collected at source)'],
+  ['tds',             'TDS (tax deducted at source)'],
+  ['other',           'Other platform charges']
+];
+
+// Seller-side costs (NOT on any platform report — entered by the user).
+const SELLER_COSTS = [
+  ['wholesale', 'Wholesale / Manufacturing cost'],
+  ['packing',   'Packing cost'],
+  ['labour',    'Labour charges'],
+  ['transport', 'Transport to warehouse']
+];
+
+// Per-SKU cost memory, persisted in the browser.
+let costMaster = {};
+try { costMaster = JSON.parse(localStorage.getItem('ibi_cost_master') || '{}') || {}; }
+catch(e) { costMaster = {}; }
+function saveCostMaster() { localStorage.setItem('ibi_cost_master', JSON.stringify(costMaster)); }
+
+// Accumulate a (usually negative) fee amount into a breakdown bucket.
+function addFee(fb, key, amt) {
+  amt = parseFloat(amt);
+  if (!amt || isNaN(amt)) return;
+  fb[key] = (fb[key] || 0) + amt;
+}
+
+// Map an Amazon item-related-fee-type string to one of our buckets.
+function amzFeeBucket(name) {
+  const s = (name || '').toLowerCase();
+  if (!s) return 'other';
+  if (s.includes('refund'))                                              return 'refundAdmin';
+  if (s.includes('longtermstorage') || s.includes('long term storage'))  return 'longTermStorage';
+  if (s.includes('storage'))                                             return 'warehouse';
+  if (s.includes('disposal') || s.includes('removal'))                   return 'removalDisposal';
+  if (s.includes('closing'))                                             return 'closing';
+  if (s.includes('commission') || s.includes('referral'))               return 'referral';
+  if (s.includes('advertis') || s.includes('sponsor'))                  return 'advertising';
+  if (s.includes('cod') || s.includes('cash on delivery'))              return 'cod';
+  if (s.includes('cancel'))                                             return 'cancellation';
+  if (s.includes('penal'))                                              return 'penalty';
+  if (s.includes('weighthandling') || s.includes('weight handling') ||
+      s.includes('pick') || s.includes('fulfil') || s.includes('fba per')) return 'fulfilment';
+  if (s.includes('easy ship') || s.includes('shipping') ||
+      s.includes('courier') || s.includes('delivery'))                  return 'shipping';
+  return 'other';
+}
+
+function getCostKey(o) {
+  return (o.sku && o.sku !== '—') ? 'sku:' + o.sku : 'oid:' + o.orderId;
+}
+
+function escapeHtml(s) {
+  return String(s == null ? '' : s)
+    .replace(/[&<>"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]));
+}
+
+function lookupOrder() {
+  const raw = (document.getElementById('lookupInput').value || '').trim();
+  const box = document.getElementById('lookupResult');
+  if (!raw) { box.innerHTML = ''; return showToast('Enter an Order ID', 'info'); }
+  if (allOrders.length === 0) return showToast('Upload & parse a report first', 'error');
+
+  const q = raw.toLowerCase();
+  let matches = allOrders.filter(o => o.orderId.toLowerCase() === q);
+  if (matches.length === 0) matches = allOrders.filter(o => o.orderId.toLowerCase().includes(q));
+
+  if (matches.length === 0) {
+    box.innerHTML = `<div class="empty-state" style="padding:36px">
+      <div class="es-icon">🔍</div>
+      <h3>No order found</h3>
+      <p>Nothing matches “${escapeHtml(raw)}”. Check the ID, or make sure the right report is parsed.</p></div>`;
+    return;
+  }
+  const shown = matches.slice(0, 10);
+  box.innerHTML = shown.map(renderOrderPL).join('');
+  shown.forEach(o => recalcPL(o._id));
+  if (matches.length > shown.length) showToast(`Showing first 10 of ${matches.length} matches`, 'info');
+}
+
+function clearLookup() {
+  document.getElementById('lookupInput').value = '';
+  document.getElementById('lookupResult').innerHTML = '';
+}
+
+function renderOrderPL(o) {
+  const id    = o._id;
+  const fb    = o.feeBreakdown || {};
+  const qty   = Math.max(1, parseInt(o.qty) || 1);
+  const saved = costMaster[getCostKey(o)] || {};
+  const selling = o.sellingPrice || 0;
+  const net     = o.netSettlement || 0;
+
+  // Itemised platform charges present in this order
+  let feeRows = FEE_CATEGORIES
+    .filter(([k]) => Math.abs(fb[k] || 0) > 0.005)
+    .map(([k, label]) =>
+      `<div class="pl-row sub"><span class="lbl">${label}</span><span class="val">−₹${fmt(Math.abs(fb[k]))}</span></div>`)
+    .join('');
+  if (!feeRows) feeRows =
+    `<div class="pl-row sub"><span class="lbl" style="color:var(--text-mute)">No itemised charges in this report</span><span class="val"></span></div>`;
+
+  // Authoritative total deduction = Selling − Net (falls back to summed buckets)
+  const classified  = Object.values(fb).reduce((s, v) => s + Math.abs(v), 0);
+  const totalCharges = selling > 0 ? Math.max(0, selling - net) : classified;
+
+  const costInputs = SELLER_COSTS.map(([k, label]) =>
+    `<div class="pl-input-row">
+       <label>${label} <span style="color:var(--text-mute)">/ unit</span></label>
+       <input class="pl-input" id="pl-${k}-${id}" type="number" step="0.01" min="0"
+              value="${saved[k] != null ? saved[k] : ''}" placeholder="0"
+              oninput="recalcPL('${id}')"></div>`).join('');
+
+  const costNoun = (o.sku && o.sku !== '—') ? 'SKU' : 'order';
+
+  return `
+  <div class="pl-card">
+    <div class="pl-head">
+      <span class="td-platform" style="color:${o.platformColor}"><span class="dot" style="background:${o.platformColor}"></span>${o.platform}</span>
+      <span class="pl-oid">${escapeHtml(o.orderId)}</span>
+      <span class="td-status ${o.status.toLowerCase()}">${o.status}</span>
+      <span style="margin-left:auto;font-size:11px;color:var(--text-dim)">Order ${o.orderDate || '—'} &nbsp;·&nbsp; Settled ${o.settlementDate || '—'}</span>
+    </div>
+    <div class="pl-body">
+      <div class="pl-col">
+        <h4>Selling Price → Platform Charges → Net Received</h4>
+        <div class="pl-row"><span class="lbl">Product</span><span class="val" style="max-width:210px;overflow:hidden;text-overflow:ellipsis" title="${escapeHtml(o.product)}">${escapeHtml(o.product || '—')}</span></div>
+        <div class="pl-row"><span class="lbl">Quantity</span><span class="val">${escapeHtml(o.qty || '—')}</span></div>
+        ${(o.priceBreakup && o.priceBreakup.principal > 0)
+          ? `<div class="pl-row"><span class="lbl">Item price (before GST)</span><span class="val">₹${fmt(o.priceBreakup.principal)}</span></div>
+        <div class="pl-row"><span class="lbl" style="font-size:11.5px;color:var(--text-mute)">+ GST collected from buyer</span><span class="val" style="color:var(--text-mute)">₹${fmt(o.priceBreakup.tax)}</span></div>
+        <div class="pl-row total"><span class="lbl">Price customer paid (incl. GST)</span><span class="val">₹${fmt(o.priceBreakup.principal + o.priceBreakup.tax)}</span></div>`
+          : (selling > 0 ? `<div class="pl-row total"><span class="lbl">Price customer paid</span><span class="val">₹${fmt(selling)}</span></div>` : '')}
+        <div class="pl-cap">eCommerce platform charges (already deducted)</div>
+        ${feeRows}
+        <div class="pl-row"><span class="lbl" style="font-size:11px;color:var(--text-mute)">↳ shipping billed Local / Regional / National by zone</span><span class="val"></span></div>
+        <div class="pl-row total"><span class="lbl">Total platform charges</span><span class="val" style="color:var(--returned)">−₹${fmt(totalCharges)}</span></div>
+        <div class="pl-row net"><span class="lbl">Net settlement received in bank</span><span class="val">₹${fmt(net)}</span></div>
+      </div>
+      <div class="pl-col">
+        <h4>Your Costs &amp; Profit</h4>
+        <div class="pl-input-row"><label>Quantity (units)</label><input class="pl-input" id="pl-qty-${id}" type="number" min="1" step="1" value="${qty}" oninput="recalcPL('${id}')"></div>
+        ${costInputs}
+        <div class="pl-row total"><span class="lbl">Total cost (× qty)</span><span class="val" id="pl-out-cost-${id}">₹0</span></div>
+        <div class="pl-row net"><span class="lbl">Net received in bank</span><span class="val">₹${fmt(net)}</span></div>
+        <div class="profit-summary">
+          <div class="profit-box"><div class="pb-label">Profit Amount</div><div class="pb-value" id="pl-out-profit-${id}">—</div></div>
+          <div class="profit-box"><div class="pb-label">Profit % (on cost)</div><div class="pb-value" id="pl-out-pct-${id}">—</div></div>
+          <div class="profit-box"><div class="pb-label">Profit Margin</div><div class="pb-value" id="pl-out-margin-${id}">—</div></div>
+        </div>
+        <div class="pl-actions">
+          <button class="btn btn-secondary" style="font-size:11px;padding:6px 12px" onclick="savePLCosts('${id}')">💾 Save costs for this ${costNoun}</button>
+        </div>
+      </div>
+    </div>
+    <div class="pl-note">
+      <strong>How this is calculated —</strong> the platform charges above (referral, closing, shipping, fees, GST, TCS, TDS…) are already deducted by the platform, so the <strong>Net settlement received</strong> is the real money in your bank.
+      <strong>Profit = Net received − your own costs</strong> (wholesale + packing + labour + transport, per unit × qty).
+      <strong>Profit %</strong> = profit ÷ total cost &nbsp;·&nbsp; <strong>Profit Margin</strong> = profit ÷ net received.
+      Itemised platform charges are read best-effort from the uploaded report; the Net figure is the authoritative bank amount and is always used for profit.
+      <br><strong>About GST:</strong> the GST collected from the buyer is included in the Net you receive, but it isn't really your money — you pay it to the government in your GST return (and you can offset the GST charged on platform fees and on your purchases). So treat this profit as <em>before</em> settling GST.
+    </div>
+  </div>`;
+}
+
+function recalcPL(id) {
+  const o = allOrders.find(x => x._id === id);
+  if (!o) return;
+  const g = k => { const el = document.getElementById('pl-' + k + '-' + id); return el ? (parseFloat(el.value) || 0) : 0; };
+  const qtyEl = document.getElementById('pl-qty-' + id);
+  const qty   = Math.max(1, parseInt(qtyEl ? qtyEl.value : '1') || 1);
+  const totalCost = (g('wholesale') + g('packing') + g('labour') + g('transport')) * qty;
+  const net    = o.netSettlement || 0;
+  const profit = net - totalCost;
+  const pctCost = totalCost > 0 ? (profit / totalCost * 100) : null;
+  const margin  = net !== 0    ? (profit / net * 100)        : null;
+  const cls = profit >= 0 ? 'profit-pos' : 'profit-neg';
+  const set = (k, html) => { const el = document.getElementById('pl-out-' + k + '-' + id); if (el) el.innerHTML = html; };
+
+  set('cost',   '₹' + fmt(totalCost));
+  set('profit', `<span class="${cls}">${profit < 0 ? '−' : ''}₹${fmt(Math.abs(profit))}</span>`);
+  set('pct',    pctCost === null ? '<span style="color:var(--text-mute)">—</span>' : `<span class="${cls}">${pctCost.toFixed(1)}%</span>`);
+  set('margin', margin  === null ? '<span style="color:var(--text-mute)">—</span>' : `<span class="${cls}">${margin.toFixed(1)}%</span>`);
+}
+
+function savePLCosts(id) {
+  const o = allOrders.find(x => x._id === id);
+  if (!o) return;
+  const g = k => { const el = document.getElementById('pl-' + k + '-' + id); return el ? (parseFloat(el.value) || 0) : 0; };
+  const key = getCostKey(o);
+  costMaster[key] = { wholesale: g('wholesale'), packing: g('packing'), labour: g('labour'), transport: g('transport') };
+  saveCostMaster();
+  showToast('✓ Costs saved — auto-fills next time for ' + (key.startsWith('sku:') ? ('SKU ' + o.sku) : 'this order'), 'success');
 }
 
 function toggleGuide() {
@@ -2238,7 +3000,67 @@ settleDaysInput.addEventListener('change', () => {
   localStorage.setItem('ibi_settle_days', settleDaysInput.value);
 });
 
+// ═══════════════════════════════════════════════
+//  PERSISTENCE — keep uploaded files & parsed data across refresh (IndexedDB)
+//  Only "Clear All" wipes it. Settings (cost master, GAS URL, theme) live in localStorage.
+// ═══════════════════════════════════════════════
+const IDB_NAME = 'ibi_tracker', IDB_STORE = 'state', IDB_KEY = 'snapshot';
+function idbOpen() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(IDB_NAME, 1);
+    req.onupgradeneeded = () => { if (!req.result.objectStoreNames.contains(IDB_STORE)) req.result.createObjectStore(IDB_STORE); };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror   = () => reject(req.error);
+  });
+}
+async function idbPut(val) {
+  try {
+    const db = await idbOpen();
+    await new Promise((res, rej) => { const tx = db.transaction(IDB_STORE, 'readwrite'); tx.objectStore(IDB_STORE).put(val, IDB_KEY); tx.oncomplete = res; tx.onerror = () => rej(tx.error); });
+    db.close();
+  } catch (e) { /* storage unavailable (e.g. private mode) — silently skip */ }
+}
+async function idbGet() {
+  try {
+    const db = await idbOpen();
+    const v = await new Promise((res, rej) => { const tx = db.transaction(IDB_STORE, 'readonly'); const g = tx.objectStore(IDB_STORE).get(IDB_KEY); g.onsuccess = () => res(g.result); g.onerror = () => rej(g.error); });
+    db.close(); return v;
+  } catch (e) { return null; }
+}
+async function idbClear() {
+  try {
+    const db = await idbOpen();
+    await new Promise((res, rej) => { const tx = db.transaction(IDB_STORE, 'readwrite'); tx.objectStore(IDB_STORE).delete(IDB_KEY); tx.oncomplete = res; tx.onerror = () => rej(tx.error); });
+    db.close();
+  } catch (e) {}
+}
+
+let _saveTimer = null;
+function saveState() {                 // debounced — a burst of file loads collapses into one write
+  clearTimeout(_saveTimer);
+  _saveTimer = setTimeout(() => {
+    idbPut({ v: 1, uploadedFiles: uploadedFiles, mappings: mappings, parsed: allOrders.length > 0, ts: Date.now() });
+  }, 250);
+}
+
+async function restoreState() {
+  const snap = await idbGet();
+  if (!snap || !snap.uploadedFiles || !snap.uploadedFiles.length) return;
+  try {
+    uploadedFiles = snap.uploadedFiles;
+    if (snap.mappings) Object.keys(snap.mappings).forEach(k => { mappings[k] = snap.mappings[k]; });
+    updateBadges();
+    renderFileChips();
+    buildMappingPanel();
+    if (snap.parsed) parseAll();       // regenerate dashboard / table / lookup
+    showToast(`↻ Restored ${uploadedFiles.length} file(s) from your last session`, 'info');
+  } catch (e) {
+    showToast('Could not restore previous session: ' + e.message, 'error');
+  }
+}
+
 init();
+restoreState();
 </script>
 </body>
 </html>
