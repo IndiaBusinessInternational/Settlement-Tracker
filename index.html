@@ -8,6 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="apple-mobile-web-app-title" content="IBI Tracker">
 <title>IBI Settlement Tracker — India Business International</title>
+<link rel="manifest" href="manifest.json">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23000000'/%3E%3Ctext x='32' y='43' font-family='Roboto,Arial,sans-serif' font-size='27' font-weight='700' text-anchor='middle' fill='%2300c5ff'%3EIBI%3C/text%3E%3C/svg%3E">
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23000000'/%3E%3Ctext x='32' y='43' font-family='Roboto,Arial,sans-serif' font-size='27' font-weight='700' text-anchor='middle' fill='%2300c5ff'%3EIBI%3C/text%3E%3C/svg%3E">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -105,7 +106,24 @@ header {
   font-family: 'Roboto Mono', monospace; font-size: 12.5px;
   color: var(--text-dim); margin-left: auto; white-space: nowrap;
 }
-.topbar-actions { display: flex; align-items: center; gap: 8px; }
+.topbar-actions { display: flex; align-items: center; gap: 8px; position: relative; }
+.install-btn {
+  background: var(--cyan); color: var(--navy); border: none; border-radius: 20px;
+  font-family: 'Roboto', sans-serif; font-weight: 700; font-size: 12px;
+  padding: 8px 14px; cursor: pointer; white-space: nowrap;
+}
+.install-btn:hover { filter: brightness(1.12); transform: translateY(-1px); }
+.app-menu {
+  display: none; position: absolute; right: 0; top: 48px; z-index: 60;
+  background: var(--navy-card); border: 1px solid var(--border); border-radius: 10px;
+  box-shadow: var(--shadow); padding: 6px; min-width: 190px;
+}
+.app-menu button {
+  display: block; width: 100%; text-align: left; background: none; border: none;
+  color: var(--text); font-family: 'Roboto', sans-serif; font-size: 13px;
+  padding: 9px 12px; border-radius: 6px; cursor: pointer;
+}
+.app-menu button:hover { background: var(--navy-light); color: var(--cyan); }
 .logo-banner {
   background: #000; border: 1px solid var(--border); border-radius: 14px;
   padding: 20px 24px; display: flex; flex-direction: column;
@@ -839,9 +857,16 @@ td {
     <span class="version-badge" id="versionBadge">IBI Settlement Tracker v4.0</span>
     <span class="live-clock" id="liveClock">—</span>
     <div class="topbar-actions">
+      <button class="install-btn" id="installBtn" onclick="pwaInstall()" style="display:none" title="Install IBI Settlement Tracker">📥 Install</button>
       <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Switch light/dark mode">
         <span id="themeIcon">☀</span>
       </button>
+      <button class="theme-toggle" id="menuBtn" onclick="toggleMenu()" title="Menu">⚙</button>
+      <div class="app-menu" id="appMenu">
+        <button onclick="pwaInstall()">📥 Install app</button>
+        <button onclick="toggleTheme();closeMenu()">🌓 Light / Dark mode</button>
+        <button onclick="closeMenu();clearAll()">🗑 Clear all data</button>
+      </div>
     </div>
   </div>
   <div class="logo-banner">
@@ -1261,7 +1286,7 @@ let activeMapping = null; // currently visible mapping tab
 //  INIT
 // ═══════════════════════════════════════════════
 // App version — bump this on every update.  vX.Y → Y = small patch, X = big feature.
-const APP_VERSION = 'v4.4';
+const APP_VERSION = 'v4.5';
 
 function init() {
   const vb = document.getElementById('versionBadge');
@@ -3345,6 +3370,54 @@ async function restoreState() {
     showToast('Could not restore previous session: ' + e.message, 'error');
   }
 }
+
+// ═══════════════════════════════════════════════
+//  PWA — install prompt, settings menu, offline service worker
+// ═══════════════════════════════════════════════
+let deferredPrompt = null;
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(() => {}); });
+}
+
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();                 // suppress Chrome's mini-bar; we show our own button
+  deferredPrompt = e;
+  const btn = document.getElementById('installBtn');
+  if (btn) btn.style.display = '';     // our button stays visible until installed (no 7-day wait)
+  // Gentle nudge — re-appears the next day after a dismissal, not after 90 days
+  const dismissed = +localStorage.getItem('ibi_pwa_dismissed') || 0;
+  if (Date.now() - dismissed > 24 * 60 * 60 * 1000) {
+    setTimeout(() => showToast('📥 Install IBI Settlement Tracker — tap “Install” at the top-right', 'info'), 1600);
+  }
+});
+
+window.addEventListener('appinstalled', () => {
+  deferredPrompt = null;
+  const btn = document.getElementById('installBtn');
+  if (btn) btn.style.display = 'none';
+  localStorage.removeItem('ibi_pwa_dismissed');
+  showToast('✓ IBI Settlement Tracker installed', 'success');
+});
+
+async function pwaInstall() {
+  closeMenu();
+  if (!deferredPrompt) {
+    showToast('To install: open your browser menu → “Install app” / “Add to Home Screen”.', 'info');
+    return;
+  }
+  deferredPrompt.prompt();
+  const choice = await deferredPrompt.userChoice;
+  if (choice && choice.outcome === 'dismissed') localStorage.setItem('ibi_pwa_dismissed', Date.now());
+  deferredPrompt = null;
+}
+
+function toggleMenu() { const m = document.getElementById('appMenu'); if (m) m.style.display = (m.style.display === 'block' ? 'none' : 'block'); }
+function closeMenu()  { const m = document.getElementById('appMenu'); if (m) m.style.display = 'none'; }
+document.addEventListener('click', e => {
+  const menu = document.getElementById('appMenu'), btn = document.getElementById('menuBtn');
+  if (menu && menu.style.display === 'block' && !menu.contains(e.target) && e.target !== btn && !btn.contains(e.target)) closeMenu();
+});
 
 init();
 restoreState();
