@@ -1053,17 +1053,22 @@ function doGet(e) {
     <strong>Meesho/ShopClues:</strong> Delhivery logistics deduction per report mapping
   </div>
   <div class="report-bar">
-    <label>EXCEL REPORT</label>
-    <span class="rb-lbl">Order date</span>
-    <input type="date" id="repFrom" class="rep-date" title="From date (by order date)">
+    <label>REPORT</label>
+    <select class="rep-date" id="repBasis" title="Filter dates by order date or settlement date">
+      <option value="order">By Order date</option>
+      <option value="settle">By Settlement date</option>
+    </select>
+    <input type="date" id="repFrom" class="rep-date" title="From date">
     <span class="rb-lbl">to</span>
-    <input type="date" id="repTo" class="rep-date" title="To date (by order date)">
+    <input type="date" id="repTo" class="rep-date" title="To date">
     <button class="btn btn-secondary" onclick="repPreset('thisMonth')">This Month</button>
     <button class="btn btn-secondary" onclick="repPreset('lastMonth')">Last Month</button>
     <button class="btn btn-secondary" onclick="repPreset('all')">All</button>
-    <button class="btn btn-export" onclick="generateExcelReport()">⬇ Download Excel Report</button>
-    <span class="export-note" id="repNote">Full per-order cost &amp; profit report to .xlsx (Summary + By&nbsp;Platform + Orders sheets). Respects the platform filter above.</span>
+    <button class="btn btn-secondary" onclick="viewReport()">👁 View on Screen</button>
+    <button class="btn btn-export" onclick="generateExcelReport()">⬇ Download Excel</button>
+    <span class="export-note" id="repNote">Excel has live formulas — type your costs and Profit / % / Margin recalculate automatically. Respects the platform filter.</span>
   </div>
+  <div id="reportView"></div>
   <div class="export-bar">
     <button class="btn btn-export" id="exportBtn" onclick="exportToSheets()" disabled>
       ↗ Export to Google Sheets
@@ -1256,7 +1261,7 @@ let activeMapping = null; // currently visible mapping tab
 //  INIT
 // ═══════════════════════════════════════════════
 // App version — bump this on every update.  vX.Y → Y = small patch, X = big feature.
-const APP_VERSION = 'v4.3';
+const APP_VERSION = 'v4.4';
 
 function init() {
   const vb = document.getElementById('versionBadge');
@@ -1285,13 +1290,11 @@ function buildLogo() {
 function startClock() {
   const el = document.getElementById('liveClock');
   if (!el) return;
-  const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-  const mon  = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   const pad  = n => String(n).padStart(2, '0');
   function tick() {
     const d = new Date();
     let h = d.getHours(); const ap = h >= 12 ? 'PM' : 'AM'; h = h % 12 || 12;
-    el.textContent = `${d.getDate()} ${mon[d.getMonth()]} ${d.getFullYear()}, ${days[d.getDay()]}, ${pad(h)}:${pad(d.getMinutes())}:${pad(d.getSeconds())} ${ap}`;
+    el.textContent = `${fmtDateLong(d)}, ${pad(h)}:${pad(d.getMinutes())}:${pad(d.getSeconds())} ${ap}`;
   }
   tick();
   setInterval(tick, 1000);
@@ -2515,7 +2518,7 @@ function renderTable() {
           <span class="dot" style="background:${o.platformColor}"></span>${o.platform}
         </span></td>
         <td class="td-id">${o.orderId}</td>
-        <td class="td-date">${o.orderDate}</td>
+        <td class="td-date">${fmtDateLong(o.orderDate)}</td>
         <td class="td-product" title="${o.product}">${o.product}</td>
         <td class="td-id">${o.sku}</td>
         <td style="text-align:center;font-size:11px">${o.qty}</td>
@@ -2723,12 +2726,11 @@ const REPORT_FEES = [
   ['penalty','Penalty'], ['gst','GST on platform fee'], ['tcs','TCS'], ['tds','TDS'], ['other','Other platform']
 ];
 
-function generateExcelReport() {
-  if (!allOrders.length) return showToast('Upload & parse reports first', 'error');
-  if (typeof XLSX === 'undefined') return showToast('Excel library not loaded — check your connection', 'error');
-
+// Build report data once — shared by the on-screen view and the Excel download.
+function computeReport() {
   const fromV = document.getElementById('repFrom').value;
   const toV   = document.getElementById('repTo').value;
+  const basis = (document.getElementById('repBasis') || {}).value || 'order';
   const from  = fromV ? new Date(fromV + 'T00:00:00') : null;
   const to    = toV   ? new Date(toV   + 'T23:59:59') : null;
   const plat  = (document.getElementById('platformFilter') || {}).value || 'all';
@@ -2736,14 +2738,13 @@ function generateExcelReport() {
   const rows = allOrders.filter(o => {
     if (plat !== 'all' && o.platform !== plat) return false;
     if (from || to) {
-      const d = parseDate(o.orderDate);
+      const d = parseDate(basis === 'settle' ? o.settlementDate : o.orderDate);
       if (!d) return false;
       if (from && d < from) return false;
       if (to && d > to) return false;
     }
     return true;
   });
-  if (!rows.length) return showToast('No orders in that date range / platform', 'error');
 
   const r2 = n => Math.round((n + Number.EPSILON) * 100) / 100;
   const detail = rows.map(o => {
@@ -2756,8 +2757,8 @@ function generateExcelReport() {
     const profit = net - totalCost;
     const fb = o.feeBreakdown || {};
     const row = {
-      'Platform': o.platform, 'Order ID': o.orderId, 'Order Date': o.orderDate,
-      'Settlement Date': o.settlementDate, 'Status': o.status,
+      'Platform': o.platform, 'Order ID': o.orderId,
+      'Order Date': fmtDateLong(o.orderDate), 'Settlement Date': fmtDateLong(o.settlementDate), 'Status': o.status,
       'Product': o.product, 'SKU': o.sku, 'Qty': qty,
       'Item Price': o.priceBreakup ? r2(o.priceBreakup.principal) : '',
       'GST Collected': o.priceBreakup ? r2(o.priceBreakup.tax) : '',
@@ -2765,13 +2766,13 @@ function generateExcelReport() {
     };
     REPORT_FEES.forEach(([k, label]) => { row[label] = fb[k] ? r2(Math.abs(fb[k])) : 0; });
     row['Total Platform Charges'] = r2(gross > 0 ? gross - net : Object.values(fb).reduce((s, v) => s + Math.abs(v), 0));
-    row['Net Received']  = r2(net);
-    row['Wholesale/Mfg'] = r2(wholesale * qty);
-    row['Packing']       = r2(packing * qty);
-    row['Labour']        = r2(labour * qty);
-    row['Transport']     = r2(transport * qty);
-    row['Total Cost']    = r2(totalCost);
-    row['Profit']        = r2(profit);
+    row['Net Received']     = r2(net);
+    row['Wholesale/Mfg /u'] = r2(wholesale);   // PER UNIT — editable input cells in the Excel
+    row['Packing /u']       = r2(packing);
+    row['Labour /u']        = r2(labour);
+    row['Transport /u']     = r2(transport);
+    row['Total Cost']       = r2(totalCost);
+    row['Profit']           = r2(profit);
     row['Profit % (on cost)'] = totalCost > 0 ? r2(profit / totalCost * 100) : '';
     row['Profit Margin %']    = net !== 0 ? r2(profit / net * 100) : '';
     return row;
@@ -2782,9 +2783,9 @@ function generateExcelReport() {
   const tNet   = sumBy(rows, o => o.netSettlement || 0);
   const tCost  = sumBy(detail, d => d['Total Cost']);
   const tProf  = sumBy(detail, d => d['Profit']);
-  const rangeLabel = (fromV || 'start') + ' to ' + (toV || 'end');
+  const basisLabel = basis === 'settle' ? 'settlement date' : 'order date';
   const summary = [
-    { Metric: 'Date range (order date)', Value: rangeLabel },
+    { Metric: 'Date range (' + basisLabel + ')', Value: (fromV || 'start') + ' to ' + (toV || 'end') },
     { Metric: 'Platform filter', Value: plat === 'all' ? 'All platforms' : plat },
     { Metric: 'Orders', Value: rows.length },
     { Metric: 'Total Customer Paid (gross)', Value: r2(tGross) },
@@ -2804,13 +2805,108 @@ function generateExcelReport() {
     return { Platform: p, Orders: pr.length, 'Net Received': r2(net), 'Profit': r2(prof), 'Margin %': net ? r2(prof / net * 100) : '' };
   });
 
+  return { rows, detail, summary, byPlatform, tGross, tNet, tCost, tProf, fromV, toV, plat, basis };
+}
+
+function generateExcelReport() {
+  if (!allOrders.length) return showToast('Upload & parse reports first', 'error');
+  if (typeof XLSX === 'undefined') return showToast('Excel library not loaded — check your connection', 'error');
+  const rep = computeReport();
+  if (!rep.rows.length) return showToast('No orders in that date range / platform', 'error');
+  const { detail, summary, byPlatform } = rep;
+
+  // ── Orders sheet with LIVE formulas (edit the cost cells → Profit/%/Margin recalc) ──
+  const wsO = XLSX.utils.json_to_sheet(detail);
+  const H = Object.keys(detail[0]);
+  const col = name => XLSX.utils.encode_col(H.indexOf(name));
+  const Cqty = col('Qty'), Cnet = col('Net Received'),
+        Cw = col('Wholesale/Mfg /u'), Cp = col('Packing /u'), Cl = col('Labour /u'), Ct = col('Transport /u'),
+        Ctc = col('Total Cost'), Cpr = col('Profit'), Cpc = col('Profit % (on cost)'), Cmg = col('Profit Margin %'),
+        Cgr = col('Customer Paid'), Cpf = col('Total Platform Charges'), Cplat = col('Platform');
+  for (let i = 0; i < detail.length; i++) {
+    const r = i + 2;
+    wsO[Ctc + r] = { t: 'n', f: `(${Cw}${r}+${Cp}${r}+${Cl}${r}+${Ct}${r})*${Cqty}${r}` };
+    wsO[Cpr + r] = { t: 'n', f: `${Cnet}${r}-${Ctc}${r}` };
+    wsO[Cpc + r] = { t: 'n', f: `IF(${Ctc}${r}=0,"",${Cpr}${r}/${Ctc}${r}*100)` };
+    wsO[Cmg + r] = { t: 'n', f: `IF(${Cnet}${r}=0,"",${Cpr}${r}/${Cnet}${r}*100)` };
+  }
+
+  // ── Summary — totals reference the Orders sheet so they stay live ──
+  const wsS = XLSX.utils.json_to_sheet(summary);
+  const sRow = name => summary.findIndex(s => s.Metric === name) + 2;   // Value is column B
+  const setS = (name, f) => { wsS['B' + sRow(name)] = { t: 'n', f }; };
+  setS('Total Customer Paid (gross)', `SUM(Orders!${Cgr}:${Cgr})`);
+  setS('Total Net Received (bank)',   `SUM(Orders!${Cnet}:${Cnet})`);
+  setS('Total Platform Charges',      `SUM(Orders!${Cpf}:${Cpf})`);
+  setS('Total Your Costs',            `SUM(Orders!${Ctc}:${Ctc})`);
+  setS('Total Profit',                `SUM(Orders!${Cpr}:${Cpr})`);
+  wsS['B' + sRow('Overall Margin %')] = { t: 'n', f: `IF(B${sRow('Total Net Received (bank)')}=0,"",B${sRow('Total Profit')}/B${sRow('Total Net Received (bank)')}*100)` };
+
+  // ── By Platform — SUMIF/COUNTIF over Orders so it stays live too ──
+  const wsP = XLSX.utils.json_to_sheet(byPlatform);
+  for (let i = 0; i < byPlatform.length; i++) {
+    const r = i + 2;   // A=Platform, B=Orders, C=Net Received, D=Profit, E=Margin %
+    wsP['B' + r] = { t: 'n', f: `COUNTIF(Orders!${Cplat}:${Cplat},A${r})` };
+    wsP['C' + r] = { t: 'n', f: `SUMIF(Orders!${Cplat}:${Cplat},A${r},Orders!${Cnet}:${Cnet})` };
+    wsP['D' + r] = { t: 'n', f: `SUMIF(Orders!${Cplat}:${Cplat},A${r},Orders!${Cpr}:${Cpr})` };
+    wsP['E' + r] = { t: 'n', f: `IF(C${r}=0,"",D${r}/C${r}*100)` };
+  }
+
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(summary),    'Summary');
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(byPlatform), 'By Platform');
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(detail),     'Orders');
-  const tag = (fromV || 'all') + '_' + (toV || 'all');
+  XLSX.utils.book_append_sheet(wb, wsS, 'Summary');
+  XLSX.utils.book_append_sheet(wb, wsP, 'By Platform');
+  XLSX.utils.book_append_sheet(wb, wsO, 'Orders');
+  const tag = (rep.fromV || 'all') + '_' + (rep.toV || 'all');
   XLSX.writeFile(wb, `IBI_Settlement_Report_${tag}.xlsx`);
-  showToast(`✓ Excel report: ${rows.length} orders (₹${fmt(tProf)} profit)`, 'success');
+  showToast(`✓ Excel: ${rep.rows.length} orders — cost cells are editable, profit auto-calculates`, 'success');
+}
+
+// On-screen quick view of the same report
+function viewReport() {
+  if (!allOrders.length) return showToast('Upload & parse reports first', 'error');
+  const rep = computeReport();
+  const box = document.getElementById('reportView');
+  if (!rep.rows.length) { box.innerHTML = `<div class="empty-state" style="padding:24px"><p>No orders in that range / platform.</p></div>`; return; }
+  const { summary, byPlatform, detail, tProf } = rep;
+
+  const sumRows = summary.map(s =>
+    `<div class="pl-row"><span class="lbl">${escapeHtml(s.Metric)}</span><span class="val">${typeof s.Value === 'number' ? '₹' + fmt(s.Value) : escapeHtml(String(s.Value))}</span></div>`).join('');
+
+  const platRows = byPlatform.map(p => `<tr>
+      <td><span class="td-platform">${escapeHtml(p.Platform)}</span></td>
+      <td style="text-align:center">${p.Orders}</td>
+      <td class="td-amount">₹${fmt(p['Net Received'])}</td>
+      <td class="td-amount ${p.Profit >= 0 ? '' : 'returned'}">₹${fmt(p.Profit)}</td>
+      <td class="td-amount">${p['Margin %'] === '' ? '—' : p['Margin %'] + '%'}</td></tr>`).join('');
+
+  const ordRows = detail.slice(0, 300).map(d => `<tr>
+      <td><span class="td-platform">${escapeHtml(d.Platform)}</span></td>
+      <td class="td-id">${escapeHtml(d['Order ID'])}</td>
+      <td class="td-product" title="${escapeHtml(d.Product)}">${escapeHtml(d.Product)}</td>
+      <td style="text-align:center">${d.Qty}</td>
+      <td class="td-amount">₹${fmt(d['Net Received'])}</td>
+      <td class="td-amount">₹${fmt(d['Total Cost'])}</td>
+      <td class="td-amount ${d.Profit >= 0 ? '' : 'returned'}">₹${fmt(d.Profit)}</td>
+      <td class="td-amount">${d['Profit Margin %'] === '' ? '—' : d['Profit Margin %'] + '%'}</td></tr>`).join('');
+
+  box.innerHTML = `
+    <div class="pl-card" style="margin-top:14px">
+      <div class="pl-head">
+        <span class="pl-oid" style="color:#00c5ff">REPORT · ${escapeHtml(String(summary[0].Value))} · ${escapeHtml(String(summary[1].Value))}</span>
+        <span style="margin-left:auto;font-weight:700;color:${tProf >= 0 ? 'var(--settled)' : 'var(--returned)'}">Total Profit ₹${fmt(tProf)}</span>
+      </div>
+      <div class="pl-body" style="grid-template-columns:1fr 1.4fr">
+        <div class="pl-col"><h4>Summary</h4>${sumRows}</div>
+        <div class="pl-col"><h4>By Platform</h4>
+          <table style="width:100%"><thead><tr><th>Platform</th><th>Orders</th><th>Net</th><th>Profit</th><th>Margin</th></tr></thead><tbody>${platRows}</tbody></table>
+        </div>
+      </div>
+      <div style="padding:4px 20px 18px">
+        <h4 style="color:#00c5ff;font-family:'Roboto';font-size:12px;letter-spacing:.1em;text-transform:uppercase;margin:8px 0 10px">Orders (${detail.length}${detail.length > 300 ? ' — first 300 shown' : ''})</h4>
+        <div class="table-wrap" style="margin:0"><table><thead><tr><th>Platform</th><th>Order ID</th><th>Product</th><th>Qty</th><th>Net</th><th>Cost</th><th>Profit</th><th>Margin</th></tr></thead><tbody>${ordRows}</tbody></table></div>
+      </div>
+    </div>`;
+  box.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 function clearAll() {
@@ -2870,6 +2966,15 @@ function fmtDate(d) {
   const dt = d instanceof Date ? d : new Date(d);
   if (isNaN(dt.getTime())) return String(d);
   return `${String(dt.getDate()).padStart(2,'0')}-${String(dt.getMonth()+1).padStart(2,'0')}-${dt.getFullYear()}`;
+}
+
+// Friendly date — "28 May 2026, Thu"
+const _DAYS3 = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const _MON3  = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function fmtDateLong(d) {
+  const dt = d instanceof Date ? d : parseDate(d);
+  if (!dt || isNaN(dt.getTime())) return d ? String(d) : '';
+  return `${dt.getDate()} ${_MON3[dt.getMonth()]} ${dt.getFullYear()}, ${_DAYS3[dt.getDay()]}`;
 }
 
 function fmt(n) {
@@ -3039,7 +3144,7 @@ function renderOrderPL(o) {
       <span class="td-platform" style="color:${o.platformColor}"><span class="dot" style="background:${o.platformColor}"></span>${o.platform}</span>
       <span class="pl-oid">${escapeHtml(o.orderId)}</span>
       <span class="td-status ${o.status.toLowerCase()}">${o.status}</span>
-      <span style="margin-left:auto;font-size:11px;color:var(--text-dim)">Order ${o.orderDate || '—'} &nbsp;·&nbsp; Settled ${o.settlementDate || '—'}</span>
+      <span style="margin-left:auto;font-size:11px;color:var(--text-dim)">Order ${fmtDateLong(o.orderDate) || '—'} &nbsp;·&nbsp; Settled ${fmtDateLong(o.settlementDate) || '—'}</span>
     </div>
     <div class="pl-body">
       <div class="pl-col">
