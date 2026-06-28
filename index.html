@@ -1012,6 +1012,9 @@ function doGet(e) {
   <div class="section-title">Order Details</div>
   <div class="table-toolbar">
     <div class="toolbar-filters" id="filterPills"></div>
+    <select class="search-box" id="platformFilter" style="width:auto;min-width:150px;cursor:pointer" onchange="applyFilters()" title="Filter by eCommerce platform">
+      <option value="all">All Platforms</option>
+    </select>
     <input class="search-box" type="text" id="searchBox" placeholder="Search order ID / product…" oninput="applyFilters()">
   </div>
   <div class="table-wrap">
@@ -1224,7 +1227,7 @@ let activeMapping = null; // currently visible mapping tab
 //  INIT
 // ═══════════════════════════════════════════════
 // App version — bump this on every update.  vX.Y → Y = small patch, X = big feature.
-const APP_VERSION = 'v4.1';
+const APP_VERSION = 'v4.2';
 
 function init() {
   const vb = document.getElementById('versionBadge');
@@ -1731,7 +1734,7 @@ function parseAll() {
         platform: p.name, platformId: p.id, platformColor: p.color,
         orderId: r.orderId,
         orderDate:     orderDate ? fmtDate(orderDate) : r.orderDateRaw,
-        product: r.product || '—', sku: r.sku || '—', qty: r.qty || '—',
+        product: cleanProductName(r.product || '—'), sku: r.sku || '—', qty: r.qty || '—',
         sellingPrice:  r.sellPrice,
         fees:          r.fees,
         courierCharge: r.courier || 0,
@@ -1758,6 +1761,7 @@ function parseAll() {
   }
 
   showToast(`✓ Parsed ${allOrders.length} orders from ${uploadedFiles.length} file(s)`, 'success');
+  buildPlatformFilter();
   applyFilters();
   renderDashboard();
   document.getElementById('dashTitle').style.display = '';
@@ -1877,7 +1881,7 @@ function parseAmazonSettlementV2(f, p, today, settleDays) {
       platform:      p.name, platformId: p.id, platformColor: p.color,
       orderId:       o.orderId,
       orderDate:     orderDate ? fmtDate(orderDate) : o.date,
-      product:       product,
+      product:       cleanProductName(product),
       sku:           o.skus[0] || '—',
       qty:           o.qty || '—',
       sellingPrice:  parseFloat(o.gross.toFixed(2)),
@@ -2185,7 +2189,7 @@ function parseFlipkartPaymentReport(f, p, today, settleDays) {
       platform:      p.name, platformId: p.id, platformColor: p.color,
       orderId:       o.orderId,
       orderDate:     orderDate ? fmtDate(orderDate) : o.orderDate,
-      product:       o.product || o.sku || '—',
+      product:       cleanProductName(o.product || o.sku || '—'),
       sku:           o.sku || '—',
       qty:           o.qty || '—',
       sellingPrice:  parseFloat(o.sale.toFixed(2)),
@@ -2299,7 +2303,7 @@ function parseMeeshoPaymentReport(f, p, today, settleDays) {
       platform:      p.name, platformId: p.id, platformColor: p.color,
       orderId:       o.orderId,
       orderDate:     orderDate ? fmtDate(orderDate) : o.orderDate,
-      product:       o.product || o.sku || '—',
+      product:       cleanProductName(o.product || o.sku || '—'),
       sku:           o.sku || '—',
       qty:           o.qty || '—',
       sellingPrice:  parseFloat(o.gross.toFixed(2)),
@@ -2411,15 +2415,27 @@ function renderDashboard() {
 // ═══════════════════════════════════════════════
 //  TABLE
 // ═══════════════════════════════════════════════
+function buildPlatformFilter() {
+  const sel = document.getElementById('platformFilter');
+  if (!sel) return;
+  const platforms = [...new Set(allOrders.map(o => o.platform))].sort();
+  const cur = sel.value || 'all';
+  sel.innerHTML = '<option value="all">All Platforms</option>' +
+    platforms.map(p => `<option value="${p}">${p}</option>`).join('');
+  sel.value = platforms.includes(cur) ? cur : 'all';
+}
+
 function applyFilters() {
-  const q = (document.getElementById('searchBox').value || '').toLowerCase();
+  const q    = (document.getElementById('searchBox').value || '').toLowerCase();
+  const plat = (document.getElementById('platformFilter') || {}).value || 'all';
   filteredOrders = allOrders.filter(o => {
-    const matchFilter = currentFilter === 'all' || o.status.toLowerCase() === currentFilter;
-    const matchSearch = !q || o.orderId.toLowerCase().includes(q) ||
+    const matchFilter   = currentFilter === 'all' || o.status.toLowerCase() === currentFilter;
+    const matchPlatform = plat === 'all' || o.platform === plat;
+    const matchSearch   = !q || o.orderId.toLowerCase().includes(q) ||
                         o.product.toLowerCase().includes(q) ||
                         o.platform.toLowerCase().includes(q) ||
                         o.sku.toLowerCase().includes(q);
-    return matchFilter && matchSearch;
+    return matchFilter && matchPlatform && matchSearch;
   });
   if (sortCol) doSort();
   currentPage = 1;
@@ -2713,6 +2729,26 @@ function fmtDate(d) {
 function fmt(n) {
   if (n === 0 || n === undefined || n === null) return '0';
   return parseFloat(n.toFixed(2)).toLocaleString('en-IN');
+}
+
+// Strip our own brand / keyword-stuffing from marketplace product titles so the
+// real product name (with dimensions & colour) shows clearly.
+const PRODUCT_NOISE = [
+  /india business internationals?/ig,   // "India Business International"
+  /i\s*intelligence\s*i/ig,             // "iINTELLIGENCEi"
+  /\biintelligencei\b/ig,
+  /\bibi\b/ig
+];
+function cleanProductName(name) {
+  if (!name) return name;
+  let s = String(name);
+  PRODUCT_NOISE.forEach(re => { s = s.replace(re, ''); });
+  s = s.replace(/\s*\|\s*/g, ' | ')      // normalise pipe separators
+       .replace(/^[\s|,–-]+/, '')         // drop leading separators left behind
+       .replace(/[\s|,–-]+$/, '')         // drop trailing separators
+       .replace(/\s{2,}/g, ' ')
+       .trim();
+  return s || String(name).trim();        // never return empty
 }
 
 // ═══════════════════════════════════════════════
