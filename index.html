@@ -1349,7 +1349,7 @@ let activeMapping = null; // currently visible mapping tab
 //  INIT
 // ═══════════════════════════════════════════════
 // App version — bump this on every update.  vX.Y → Y = small patch, X = big feature.
-const APP_VERSION = 'v4.8';
+const APP_VERSION = 'v4.9';
 
 function init() {
   const vb = document.getElementById('versionBadge');
@@ -2607,7 +2607,7 @@ function renderTable() {
         </span></td>
         <td class="td-id">${o.orderId}</td>
         <td class="td-date">${fmtDateLong(o.orderDate)}</td>
-        <td class="td-product" title="${o.product}">${o.product}</td>
+        <td class="td-product" title="${escapeHtml(displayName(o))}">${escapeHtml(displayName(o))}</td>
         <td class="td-id">${o.sku}</td>
         <td style="text-align:center;font-size:11px">${o.qty}</td>
         <td class="td-amount">${o.sellingPrice > 0 ? '₹'+fmt(o.sellingPrice) : '—'}</td>
@@ -2712,7 +2712,7 @@ async function exportToSheets() {
     platform:       o.platform,
     orderId:        o.orderId,
     orderDate:      o.orderDate,
-    product:        o.product === '—' ? '' : o.product,
+    product:        displayName(o) === '—' ? '' : displayName(o),
     sku:            o.sku === '—' ? '' : o.sku,
     qty:            o.qty === '—' ? '' : o.qty,
     sellingPrice:   o.sellingPrice,
@@ -2721,7 +2721,7 @@ async function exportToSheets() {
     netSettlement:  o.netSettlement,
     settlementDate: o.settlementDate,
     status:         o.status,
-    daysSinceOrder: o.daysSince,
+    daysSinceOrder: daysToSettle(o),
     remarks:        o.daysUntilSettle !== null && o.status==='Pending'
                       ? `${o.daysUntilSettle} days until settlement` : ''
   }));
@@ -2773,7 +2773,7 @@ function downloadCSV() {
   if (toExport.length === 0) return showToast('No orders to download', 'error');
   const headers = ['Platform','Order ID','Order Date','Product','SKU','Qty','Selling Price','Courier Charges','All Fees','Net Settlement','Settlement Date','Status','Days Until Settle'];
   const rows = toExport.map(o =>
-    [o.platform, o.orderId, o.orderDate, o.product, o.sku, o.qty,
+    [o.platform, o.orderId, o.orderDate, displayName(o), o.sku, o.qty,
      o.sellingPrice, o.courierCharge||0, o.fees, o.netSettlement, o.settlementDate, o.status, o.daysUntilSettle]
     .map(v => `"${String(v||'').replace(/"/g,'""')}"`)
     .join(',')
@@ -2847,7 +2847,7 @@ function computeReport() {
     const row = {
       'Platform': o.platform, 'Order ID': o.orderId,
       'Order Date': fmtDateLong(o.orderDate), 'Settlement Date': fmtDateLong(o.settlementDate), 'Status': o.status,
-      'Product': o.product, 'SKU': o.sku, 'Qty': qty,
+      'Product': displayName(o), 'SKU': o.sku, 'Qty': qty,
       'Item Price': o.priceBreakup ? r2(o.priceBreakup.principal) : '',
       'GST Collected': o.priceBreakup ? r2(o.priceBreakup.tax) : '',
       'Customer Paid': r2(gross)
@@ -3147,6 +3147,21 @@ function cleanProductName(name) {
   return s || String(name).trim();        // never return empty
 }
 
+// SKU → friendly product name. Amazon settlement files often give only a SKU
+// CODE as the product (e.g. "VS-1RP1-XEHQ"); a label saved per SKU in the
+// Order Lookup card shows the real name everywhere.
+function displayName(o) {
+  const c = costMaster[getCostKey(o)];
+  return (c && c.name) ? c.name : (o.product || '—');
+}
+
+// Days the order took to settle = settlement date − order date (NOT "until today").
+function daysToSettle(o) {
+  const od = parseDate(o.orderDate), sd = parseDate(o.settlementDate);
+  if (!od || !sd) return '';
+  return Math.max(0, Math.round((sd - od) / 86400000));
+}
+
 // ═══════════════════════════════════════════════
 //  ORDER LOOKUP — COST & PROFIT BREAKDOWN
 // ═══════════════════════════════════════════════
@@ -3294,7 +3309,7 @@ function renderOrderPL(o) {
     <div class="pl-body">
       <div class="pl-col">
         <h4>Selling Price → Platform Charges → Net Received</h4>
-        <div class="pl-row"><span class="lbl">Product</span><span class="val" style="max-width:210px;overflow:hidden;text-overflow:ellipsis" title="${escapeHtml(o.product)}">${escapeHtml(o.product || '—')}</span></div>
+        <div class="pl-row"><span class="lbl">Product</span><span class="val" style="max-width:210px;overflow:hidden;text-overflow:ellipsis" title="${escapeHtml(displayName(o))}">${escapeHtml(displayName(o))}</span></div>
         <div class="pl-row"><span class="lbl">Quantity</span><span class="val">${escapeHtml(o.qty || '—')}</span></div>
         ${(o.priceBreakup && o.priceBreakup.principal > 0)
           ? `<div class="pl-row"><span class="lbl">Item price (before GST)</span><span class="val">₹${fmt(o.priceBreakup.principal)}</span></div>
@@ -3309,6 +3324,7 @@ function renderOrderPL(o) {
       </div>
       <div class="pl-col">
         <h4>Your Costs &amp; Profit</h4>
+        <div class="pl-input-row"><label>Product name (this SKU)</label><input class="pl-input" id="pl-name-${id}" type="text" style="width:180px;text-align:left;font-family:'Roboto',sans-serif" value="${escapeHtml(saved.name || '')}" placeholder="real product name"></div>
         <div class="pl-input-row"><label>Quantity (units)</label><input class="pl-input" id="pl-qty-${id}" type="number" min="1" step="1" value="${qty}" oninput="recalcPL('${id}')"></div>
         ${costInputs}
         <div class="pl-row total"><span class="lbl">Total cost (× qty)</span><span class="val" id="pl-out-cost-${id}">₹0</span></div>
@@ -3357,10 +3373,14 @@ function savePLCosts(id) {
   const o = allOrders.find(x => x._id === id);
   if (!o) return;
   const g = k => { const el = document.getElementById('pl-' + k + '-' + id); return el ? (parseFloat(el.value) || 0) : 0; };
+  const nameEl = document.getElementById('pl-name-' + id);
+  const name = nameEl ? (nameEl.value || '').trim() : '';
   const key = getCostKey(o);
-  costMaster[key] = { wholesale: g('wholesale'), packing: g('packing'), labour: g('labour'), transport: g('transport') };
+  const prev = costMaster[key] || {};
+  costMaster[key] = { wholesale: g('wholesale'), packing: g('packing'), labour: g('labour'), transport: g('transport'), name: name || prev.name || '' };
   saveCostMaster();
-  showToast('✓ Costs saved — auto-fills next time for ' + (key.startsWith('sku:') ? ('SKU ' + o.sku) : 'this order'), 'success');
+  applyFilters();   // refresh the table so the product name / costs show immediately
+  showToast('✓ Saved — auto-fills next time for ' + (key.startsWith('sku:') ? ('SKU ' + o.sku) : 'this order'), 'success');
 }
 
 function toggleGuide() {
