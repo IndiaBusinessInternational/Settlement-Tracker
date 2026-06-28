@@ -903,6 +903,7 @@ td {
       </button>
       <button class="theme-toggle" id="menuBtn" onclick="toggleMenu()" title="Menu">⚙</button>
       <div class="app-menu" id="appMenu">
+        <button onclick="forceUpdate()">🔄 Update to latest version</button>
         <button onclick="pwaInstall()">📥 Install app</button>
         <button onclick="syncTrackerNames()">🏷 Sync product names (Package Tracker)</button>
         <button onclick="openNotes()">📝 Notes</button>
@@ -1389,7 +1390,7 @@ let activeMapping = null; // currently visible mapping tab
 //  INIT
 // ═══════════════════════════════════════════════
 // App version — bump this on every update.  vX.Y → Y = small patch, X = big feature.
-const APP_VERSION = 'v5.2';
+const APP_VERSION = 'v5.3';
 
 function init() {
   const vb = document.getElementById('versionBadge');
@@ -3647,6 +3648,18 @@ async function pwaInstall() {
   const choice = await deferredPrompt.userChoice;
   if (choice && choice.outcome === 'dismissed') localStorage.setItem('ibi_pwa_dismissed', Date.now());
   deferredPrompt = null;
+}
+
+// Clear all caches + unregister the service worker, then reload from network.
+// Non-destructive — your uploaded files, costs and names (IndexedDB/localStorage) are kept.
+async function forceUpdate() {
+  closeMenu();
+  showToast('Fetching the latest version…');
+  try {
+    if (window.caches) { const ks = await caches.keys(); await Promise.all(ks.map(k => caches.delete(k))); }
+    if ('serviceWorker' in navigator) { const regs = await navigator.serviceWorker.getRegistrations(); await Promise.all(regs.map(r => r.unregister())); }
+  } catch (e) {}
+  setTimeout(() => location.reload(true), 400);
 }
 
 function toggleMenu() { const m = document.getElementById('appMenu'); if (m) m.style.display = (m.style.display === 'block' ? 'none' : 'block'); }
