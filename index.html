@@ -904,6 +904,7 @@ td {
       <button class="theme-toggle" id="menuBtn" onclick="toggleMenu()" title="Menu">⚙</button>
       <div class="app-menu" id="appMenu">
         <button onclick="pwaInstall()">📥 Install app</button>
+        <button onclick="syncTrackerNames()">🏷 Sync product names (Package Tracker)</button>
         <button onclick="openNotes()">📝 Notes</button>
         <button onclick="closeMenu();downloadBackup()">⬇ Download backup</button>
         <button onclick="closeMenu();document.getElementById('restoreInput').click()">⬆ Restore from backup</button>
@@ -954,6 +955,11 @@ td {
 
 const SHEET_ID  = 'YOUR_GOOGLE_SHEET_ID_HERE';  // ← paste your Sheet ID here
 const SHEET_TAB = 'Settlements';
+
+// ── Package Tracker sheet — read to fill proper product names by Order ID.
+//    Runs as you, so only Order ID → Product name leaves the sheet (no buyer PII).
+const TRACKER_SHEET_ID = '1VjK5oA6mCZVXZ2AhfZYtb0kVAkB549bSUB4iQ4eW7f0';
+const TRACKER_TAB      = 'Package Tracker';
 
 const HEADERS = [
   'Timestamp','Platform','Order ID','Order Date','Product',
@@ -1040,9 +1046,43 @@ function doPost(e) {
   }
 }
 
-// ── Handle GET (ping / health-check) ────────────────────────
+// ── Handle GET — health-check, or JSONP product-name lookup ──
 function doGet(e) {
+  const action   = e && e.parameter ? e.parameter.action : '';
+  const callback = e && e.parameter ? e.parameter.callback : '';
+  if (action === 'getTrackerNames') {
+    const out = JSON.stringify(getTrackerNames_());
+    // JSONP (a &lt;script&gt; tag read) — bypasses the GAS no-CORS limit for reads
+    if (callback) return ContentService.createTextOutput(callback + '(' + out + ')')
+                                       .setMimeType(ContentService.MimeType.JAVASCRIPT);
+    return corsResponse(getTrackerNames_());
+  }
   return corsResponse({ ok: true, msg: 'IBI Settlement Tracker GAS is live', ts: new Date().toISOString() });
+}
+
+// ── Order ID → Product name, read from the Package Tracker sheet ──────
+function getTrackerNames_() {
+  try {
+    const ss = SpreadsheetApp.openById(TRACKER_SHEET_ID);
+    const sh = ss.getSheetByName(TRACKER_TAB) || ss.getSheets()[0];
+    if (!sh) return { ok: true, names: {} };
+    const vals = sh.getDataRange().getValues();
+    if (vals.length &lt; 2) return { ok: true, names: {} };
+    const hdr = vals[0].map(function(h){ return String(h||'').toLowerCase().replace(/[\s_\-\/\\\.,\(\)\[\]:#&₹]/g,''); });
+    function find(aliases){ for (var c=0;c&lt;hdr.length;c++){ for (var a=0;a&lt;aliases.length;a++){ if (hdr[c]===aliases[a]) return c; } } return -1; }
+    const oi = find(['orderid','orderno','ordernumber']);
+    const pi = find(['productssku','products','product','itemname','items']);
+    if (oi &lt; 0 || pi &lt; 0) return { ok: false, error: 'Order ID / Products column not found in Package Tracker' };
+    const names = {};
+    for (var i=1;i&lt;vals.length;i++){
+      var id = String(vals[i][oi]||'').trim();
+      var nm = String(vals[i][pi]||'').trim().replace(/\s*\|\s*SKU\s*:.*$/i,'').trim();
+      if (id &amp;&amp; nm) names[id] = nm;
+    }
+    return { ok: true, names: names, total: Object.keys(names).length };
+  } catch (err) {
+    return { ok: false, error: err.message };
+  }
 }</pre>
 </div>
 
@@ -1349,7 +1389,7 @@ let activeMapping = null; // currently visible mapping tab
 //  INIT
 // ═══════════════════════════════════════════════
 // App version — bump this on every update.  vX.Y → Y = small patch, X = big feature.
-const APP_VERSION = 'v5.0';
+const APP_VERSION = 'v5.1';
 
 function init() {
   const vb = document.getElementById('versionBadge');
@@ -3024,6 +3064,7 @@ function downloadBackup() {
     uploadedFiles: uploadedFiles,
     mappings: mappings,
     costMaster: costMaster,
+    trackerNames: trackerNames,
     settings: {
       gasUrl:     localStorage.getItem('ibi_gas_url')     || '',
       settleDays: localStorage.getItem('ibi_settle_days') || '15',
@@ -3053,6 +3094,7 @@ function handleRestore(event) {
       Object.keys(mappings).forEach(k => delete mappings[k]);
       if (b.mappings) Object.assign(mappings, b.mappings);
       if (b.costMaster && typeof b.costMaster === 'object') { costMaster = b.costMaster; saveCostMaster(); }
+      if (b.trackerNames && typeof b.trackerNames === 'object') { trackerNames = b.trackerNames; localStorage.setItem('ibi_tracker_names', JSON.stringify(trackerNames)); }
       if (b.settings) {
         if (b.settings.gasUrl !== undefined)  { localStorage.setItem('ibi_gas_url', b.settings.gasUrl); const g = document.getElementById('gasUrl'); if (g) g.value = b.settings.gasUrl; }
         if (b.settings.settleDays)            { localStorage.setItem('ibi_settle_days', b.settings.settleDays); const s = document.getElementById('settleDays'); if (s) s.value = b.settings.settleDays; }
@@ -3147,12 +3189,19 @@ function cleanProductName(name) {
   return s || String(name).trim();        // never return empty
 }
 
-// SKU → friendly product name. Amazon settlement files often give only a SKU
-// CODE as the product (e.g. "VS-1RP1-XEHQ"); a label saved per SKU in the
-// Order Lookup card shows the real name everywhere.
+// Order ID → proper product name, synced from the IBI Package Tracker.
+let trackerNames = {};
+try { trackerNames = JSON.parse(localStorage.getItem('ibi_tracker_names') || '{}') || {}; } catch (e) { trackerNames = {}; }
+
+// Friendly product name, in priority order:
+//   1. a manual label you saved for this SKU (Order Lookup)
+//   2. the Package Tracker's product name for this Order ID
+//   3. whatever the settlement file gave (often a bare SKU code)
 function displayName(o) {
   const c = costMaster[getCostKey(o)];
-  return (c && c.name) ? c.name : (o.product || '—');
+  if (c && c.name) return c.name;
+  if (o.orderId && trackerNames[o.orderId]) return trackerNames[o.orderId];
+  return o.product || '—';
 }
 
 // Days the order took to settle = settlement date − order date (NOT "until today").
@@ -3381,6 +3430,41 @@ function savePLCosts(id) {
   saveCostMaster();
   applyFilters();   // refresh the table so the product name / costs show immediately
   showToast('✓ Saved — auto-fills next time for ' + (key.startsWith('sku:') ? ('SKU ' + o.sku) : 'this order'), 'success');
+}
+
+// ── Sync proper product names from the IBI Package Tracker (by Order ID) ──
+// Uses JSONP because Google Apps Script web apps don't send CORS headers for reads.
+function jsonpGet(url, params) {
+  return new Promise((resolve, reject) => {
+    const cb = 'ibicb_' + Math.floor(Date.now() + Math.random() * 1e6);
+    const s = document.createElement('script');
+    let done = false;
+    const cleanup = () => { try { delete window[cb]; } catch (_) { window[cb] = undefined; } s.remove(); };
+    window[cb] = data => { done = true; cleanup(); resolve(data); };
+    s.onerror = () => { if (!done) { cleanup(); reject(new Error('network / bad GAS URL')); } };
+    const qs = Object.keys(params).map(k => encodeURIComponent(k) + '=' + encodeURIComponent(params[k])).join('&');
+    s.src = url + (url.includes('?') ? '&' : '?') + qs + '&callback=' + cb;
+    document.body.appendChild(s);
+    setTimeout(() => { if (!done) { cleanup(); reject(new Error('timed out — is the GAS updated & redeployed?')); } }, 25000);
+  });
+}
+
+async function syncTrackerNames() {
+  closeMenu();
+  const url = (document.getElementById('gasUrl').value || '').trim();
+  if (!url) return showToast('Set the GAS Endpoint URL (top of page) first', 'error');
+  showToast('Fetching product names from Package Tracker…');
+  try {
+    const json = await jsonpGet(url, { action: 'getTrackerNames' });
+    if (!json || !json.ok) throw new Error((json && json.error) || 'lookup failed');
+    trackerNames = json.names || {};
+    localStorage.setItem('ibi_tracker_names', JSON.stringify(trackerNames));
+    if (allOrders.length) applyFilters();
+    const n = Object.keys(trackerNames).length;
+    showToast(`✓ ${n} product names synced from Package Tracker`, n ? 'success' : 'info');
+  } catch (e) {
+    showToast('Name sync failed: ' + e.message + ' — add getTrackerNames to your GAS & redeploy', 'error');
+  }
 }
 
 function toggleGuide() {
