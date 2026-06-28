@@ -1389,7 +1389,7 @@ let activeMapping = null; // currently visible mapping tab
 //  INIT
 // ═══════════════════════════════════════════════
 // App version — bump this on every update.  vX.Y → Y = small patch, X = big feature.
-const APP_VERSION = 'v5.1';
+const APP_VERSION = 'v5.2';
 
 function init() {
   const vb = document.getElementById('versionBadge');
@@ -3200,7 +3200,7 @@ try { trackerNames = JSON.parse(localStorage.getItem('ibi_tracker_names') || '{}
 function displayName(o) {
   const c = costMaster[getCostKey(o)];
   if (c && c.name) return c.name;
-  if (o.orderId && trackerNames[o.orderId]) return trackerNames[o.orderId];
+  if (o.orderId && trackerNames[o.orderId]) return cleanProductName(trackerNames[o.orderId]);
   return o.product || '—';
 }
 
