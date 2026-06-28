@@ -618,6 +618,23 @@ td {
   flex-wrap: wrap;
 }
 .export-note { font-size: 11px; color: var(--text-mute); margin-left: auto; }
+.report-bar {
+  display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+  background: var(--navy-card); border: 1px solid var(--border);
+  border-radius: 10px; padding: 12px 16px; margin-bottom: 12px;
+}
+.report-bar > label {
+  font-size: 11px; color: #00c5ff; background: #000; padding: 4px 10px;
+  border-radius: 5px; letter-spacing: 0.06em; text-transform: uppercase; white-space: nowrap;
+}
+.report-bar .rb-lbl { font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.04em; }
+.rep-date {
+  background: var(--navy-light); border: 1px solid var(--border); border-radius: 6px;
+  color: var(--text); padding: 6px 10px; font-size: 12px;
+  font-family: 'Roboto Mono', monospace; outline: none; cursor: pointer;
+}
+.rep-date:focus { border-color: var(--cyan); }
+[data-theme="light"] .rep-date { background: #f8fafc; }
 
 /* ─── EMPTY STATE ─── */
 .empty-state {
@@ -1035,6 +1052,18 @@ function doGet(e) {
     <strong>Flipkart:</strong> eKart reverse pickup only (charged to seller on returns; forward delivery is paid by customer) ·
     <strong>Meesho/ShopClues:</strong> Delhivery logistics deduction per report mapping
   </div>
+  <div class="report-bar">
+    <label>EXCEL REPORT</label>
+    <span class="rb-lbl">Order date</span>
+    <input type="date" id="repFrom" class="rep-date" title="From date (by order date)">
+    <span class="rb-lbl">to</span>
+    <input type="date" id="repTo" class="rep-date" title="To date (by order date)">
+    <button class="btn btn-secondary" onclick="repPreset('thisMonth')">This Month</button>
+    <button class="btn btn-secondary" onclick="repPreset('lastMonth')">Last Month</button>
+    <button class="btn btn-secondary" onclick="repPreset('all')">All</button>
+    <button class="btn btn-export" onclick="generateExcelReport()">⬇ Download Excel Report</button>
+    <span class="export-note" id="repNote">Full per-order cost &amp; profit report to .xlsx (Summary + By&nbsp;Platform + Orders sheets). Respects the platform filter above.</span>
+  </div>
   <div class="export-bar">
     <button class="btn btn-export" id="exportBtn" onclick="exportToSheets()" disabled>
       ↗ Export to Google Sheets
@@ -1227,7 +1256,7 @@ let activeMapping = null; // currently visible mapping tab
 //  INIT
 // ═══════════════════════════════════════════════
 // App version — bump this on every update.  vX.Y → Y = small patch, X = big feature.
-const APP_VERSION = 'v4.2';
+const APP_VERSION = 'v4.3';
 
 function init() {
   const vb = document.getElementById('versionBadge');
@@ -2665,6 +2694,123 @@ function downloadCSV() {
   a.href = url; a.download = 'IBI_Settlements_' + fmtDate(new Date()) + '.csv';
   a.click(); URL.revokeObjectURL(url);
   showToast('CSV downloaded', 'success');
+}
+
+// ═══════════════════════════════════════════════
+//  BULK EXCEL REPORT — full per-order cost & profit, by date range
+// ═══════════════════════════════════════════════
+function repPreset(kind) {
+  const from = document.getElementById('repFrom'), to = document.getElementById('repTo');
+  const iso = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  const now = new Date();
+  if (kind === 'all') { from.value = ''; to.value = ''; }
+  else if (kind === 'thisMonth') {
+    from.value = iso(new Date(now.getFullYear(), now.getMonth(), 1));
+    to.value   = iso(now);
+  } else if (kind === 'lastMonth') {
+    from.value = iso(new Date(now.getFullYear(), now.getMonth()-1, 1));
+    to.value   = iso(new Date(now.getFullYear(), now.getMonth(), 0));   // last day of prev month
+  }
+}
+
+// Fee categories for the report columns (key → header)
+const REPORT_FEES = [
+  ['referral','Referral/Commission'], ['closing','Closing fee'], ['fixed','Fixed fee'],
+  ['shipping','Shipping/Courier (fwd)'], ['reverseShipping','Reverse shipping'], ['pickup','Pick-up/Pack'],
+  ['collection','Collection fee'], ['cod','COD charges'], ['fulfilment','Fulfilment fee'],
+  ['warehouse','Warehouse/Storage'], ['longTermStorage','Long-term storage'], ['removalDisposal','Removal/Disposal'],
+  ['refundAdmin','Refund admin'], ['advertising','Advertising'], ['cancellation','Cancellation'],
+  ['penalty','Penalty'], ['gst','GST on platform fee'], ['tcs','TCS'], ['tds','TDS'], ['other','Other platform']
+];
+
+function generateExcelReport() {
+  if (!allOrders.length) return showToast('Upload & parse reports first', 'error');
+  if (typeof XLSX === 'undefined') return showToast('Excel library not loaded — check your connection', 'error');
+
+  const fromV = document.getElementById('repFrom').value;
+  const toV   = document.getElementById('repTo').value;
+  const from  = fromV ? new Date(fromV + 'T00:00:00') : null;
+  const to    = toV   ? new Date(toV   + 'T23:59:59') : null;
+  const plat  = (document.getElementById('platformFilter') || {}).value || 'all';
+
+  const rows = allOrders.filter(o => {
+    if (plat !== 'all' && o.platform !== plat) return false;
+    if (from || to) {
+      const d = parseDate(o.orderDate);
+      if (!d) return false;
+      if (from && d < from) return false;
+      if (to && d > to) return false;
+    }
+    return true;
+  });
+  if (!rows.length) return showToast('No orders in that date range / platform', 'error');
+
+  const r2 = n => Math.round((n + Number.EPSILON) * 100) / 100;
+  const detail = rows.map(o => {
+    const qty = Math.max(1, parseInt(o.qty) || 1);
+    const c   = costMaster[getCostKey(o)] || {};
+    const wholesale = +c.wholesale || 0, packing = +c.packing || 0, labour = +c.labour || 0, transport = +c.transport || 0;
+    const totalCost = (wholesale + packing + labour + transport) * qty;
+    const net   = o.netSettlement || 0;
+    const gross = o.sellingPrice || 0;
+    const profit = net - totalCost;
+    const fb = o.feeBreakdown || {};
+    const row = {
+      'Platform': o.platform, 'Order ID': o.orderId, 'Order Date': o.orderDate,
+      'Settlement Date': o.settlementDate, 'Status': o.status,
+      'Product': o.product, 'SKU': o.sku, 'Qty': qty,
+      'Item Price': o.priceBreakup ? r2(o.priceBreakup.principal) : '',
+      'GST Collected': o.priceBreakup ? r2(o.priceBreakup.tax) : '',
+      'Customer Paid': r2(gross)
+    };
+    REPORT_FEES.forEach(([k, label]) => { row[label] = fb[k] ? r2(Math.abs(fb[k])) : 0; });
+    row['Total Platform Charges'] = r2(gross > 0 ? gross - net : Object.values(fb).reduce((s, v) => s + Math.abs(v), 0));
+    row['Net Received']  = r2(net);
+    row['Wholesale/Mfg'] = r2(wholesale * qty);
+    row['Packing']       = r2(packing * qty);
+    row['Labour']        = r2(labour * qty);
+    row['Transport']     = r2(transport * qty);
+    row['Total Cost']    = r2(totalCost);
+    row['Profit']        = r2(profit);
+    row['Profit % (on cost)'] = totalCost > 0 ? r2(profit / totalCost * 100) : '';
+    row['Profit Margin %']    = net !== 0 ? r2(profit / net * 100) : '';
+    return row;
+  });
+
+  const sumBy = (arr, f) => arr.reduce((s, x) => s + f(x), 0);
+  const tGross = sumBy(rows, o => o.sellingPrice || 0);
+  const tNet   = sumBy(rows, o => o.netSettlement || 0);
+  const tCost  = sumBy(detail, d => d['Total Cost']);
+  const tProf  = sumBy(detail, d => d['Profit']);
+  const rangeLabel = (fromV || 'start') + ' to ' + (toV || 'end');
+  const summary = [
+    { Metric: 'Date range (order date)', Value: rangeLabel },
+    { Metric: 'Platform filter', Value: plat === 'all' ? 'All platforms' : plat },
+    { Metric: 'Orders', Value: rows.length },
+    { Metric: 'Total Customer Paid (gross)', Value: r2(tGross) },
+    { Metric: 'Total Net Received (bank)', Value: r2(tNet) },
+    { Metric: 'Total Platform Charges', Value: r2(tGross - tNet) },
+    { Metric: 'Total Your Costs', Value: r2(tCost) },
+    { Metric: 'Total Profit', Value: r2(tProf) },
+    { Metric: 'Overall Margin %', Value: tNet ? r2(tProf / tNet * 100) : '' }
+  ];
+
+  const platforms = [...new Set(rows.map(o => o.platform))];
+  const byPlatform = platforms.map(p => {
+    const pr = rows.filter(o => o.platform === p);
+    const pd = detail.filter(d => d.Platform === p);
+    const net = sumBy(pr, o => o.netSettlement || 0);
+    const prof = sumBy(pd, d => d.Profit);
+    return { Platform: p, Orders: pr.length, 'Net Received': r2(net), 'Profit': r2(prof), 'Margin %': net ? r2(prof / net * 100) : '' };
+  });
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(summary),    'Summary');
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(byPlatform), 'By Platform');
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(detail),     'Orders');
+  const tag = (fromV || 'all') + '_' + (toV || 'all');
+  XLSX.writeFile(wb, `IBI_Settlement_Report_${tag}.xlsx`);
+  showToast(`✓ Excel report: ${rows.length} orders (₹${fmt(tProf)} profit)`, 'success');
 }
 
 function clearAll() {
