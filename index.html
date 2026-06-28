@@ -1349,7 +1349,7 @@ let activeMapping = null; // currently visible mapping tab
 //  INIT
 // ═══════════════════════════════════════════════
 // App version — bump this on every update.  vX.Y → Y = small patch, X = big feature.
-const APP_VERSION = 'v4.9';
+const APP_VERSION = 'v5.0';
 
 function init() {
   const vb = document.getElementById('versionBadge');
@@ -3517,7 +3517,20 @@ async function restoreState() {
 let deferredPrompt = null;
 
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(() => {}); });
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').then(reg => {
+      // Auto-update: when a NEW version installs (and a controller already exists),
+      // reload once so the user gets the latest without a manual hard-refresh.
+      reg.addEventListener('updatefound', () => {
+        const nw = reg.installing;
+        if (!nw) return;
+        nw.addEventListener('statechange', () => {
+          if (nw.state === 'installed' && navigator.serviceWorker.controller) location.reload();
+        });
+      });
+      setInterval(() => reg.update().catch(() => {}), 60 * 60 * 1000); // hourly update check
+    }).catch(() => {});
+  });
 }
 
 window.addEventListener('beforeinstallprompt', e => {
