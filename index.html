@@ -945,6 +945,10 @@ td {
 <div class="guide-panel" id="guidePanel">
   <h3>📋 Google Apps Script Setup Guide</h3>
   <p style="font-size:12px;color:var(--text-dim);margin-bottom:12px;">Create a new GAS project at <strong>script.google.com</strong>, paste the code below, deploy as Web App (Anyone can access), then paste the URL above. The <strong>Settlements</strong> Google Sheet this creates is your GDrive backup — and the <strong>IBI ERP System</strong> reads it on demand (<code>getSettlementRecords</code>): just paste that Sheet's ID into the ERP's <code>SETTLEMENTS_SHEET_ID</code> and redeploy the ERP.</p>
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap;">
+    <button class="btn btn-secondary" onclick="copyGasCode(this)" style="font-size:12px;padding:6px 14px;">📋 Copy GAS code</button>
+    <span style="font-size:11px;color:var(--text-dim);">Updating an existing script? Replace only the <code>doPost(e)</code> function — that keeps your Sheet ID.</span>
+  </div>
   <pre id="gasCode">// ════════════════════════════════════════════════════════════
 //  IBI Settlement Tracker — Google Apps Script Backend
 //  Paste into script.google.com → New Project → Save
@@ -1403,7 +1407,7 @@ let activeMapping = null; // currently visible mapping tab
 //  INIT
 // ═══════════════════════════════════════════════
 // App version — bump this on every update.  vX.Y → Y = small patch, X = big feature.
-const APP_VERSION = 'v5.5';
+const APP_VERSION = 'v5.6';
 
 function init() {
   const vb = document.getElementById('versionBadge');
@@ -3520,6 +3524,32 @@ async function syncTrackerNames() {
 function toggleGuide() {
   const p = document.getElementById('guidePanel');
   p.classList.toggle('visible');
+}
+
+// Copy the Apps Script code shown in the setup guide to the clipboard.
+function copyGasCode(btn) {
+  const el = document.getElementById('gasCode');
+  const text = el ? el.textContent : '';
+  const ok = () => {
+    if (btn) { const o = btn.innerHTML; btn.innerHTML = '✓ Copied!'; setTimeout(() => { btn.innerHTML = o; }, 1600); }
+    showToast('GAS code copied — paste it into script.google.com', 'success');
+  };
+  const fail = () => showToast('Copy blocked — select the code and press Ctrl+C', 'error');
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(ok).catch(() => { legacyCopy(text) ? ok() : fail(); });
+  } else {
+    legacyCopy(text) ? ok() : fail();
+  }
+}
+function legacyCopy(text) {
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.focus(); ta.select();
+    const done = document.execCommand('copy');
+    document.body.removeChild(ta);
+    return done;
+  } catch (e) { return false; }
 }
 
 // ═══════════════════════════════════════════════
