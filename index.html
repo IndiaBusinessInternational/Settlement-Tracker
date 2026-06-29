@@ -999,6 +999,7 @@ function doPost(e) {
     }
 
     const rows = payload.rows || [];
+    const full = payload.full === true || payload.mode === 'replace';
     const ts   = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'dd-MM-yyyy HH:mm:ss');
 
     const data = rows.map(r => [
@@ -1019,8 +1020,20 @@ function doPost(e) {
       r.remarks               || ''
     ]);
 
+    // Full export → REPLACE: wipe existing data rows (keep the header) so the sheet
+    // MIRRORS the current Tracker data instead of accumulating duplicate / stale rows.
+    // A filtered (partial) export leaves full=false and still appends.
+    if (full) {
+      const last = sheet.getLastRow();
+      if (last > 1) sheet.getRange(2, 1, last - 1, HEADERS.length).clearContent();
+    }
+
     if (data.length > 0) {
       const lastRow = sheet.getLastRow();
+      // Force the date columns to PLAIN TEXT before writing so Google Sheets can't
+      // silently re-read a day-first "DD-MM-YYYY" string as a US MM-DD date.
+      sheet.getRange(lastRow + 1, 4,  data.length, 1).setNumberFormat('@');   // Order Date
+      sheet.getRange(lastRow + 1, 12, data.length, 1).setNumberFormat('@');   // Settlement Date
       sheet.getRange(lastRow + 1, 1, data.length, HEADERS.length).setValues(data);
 
       // Colour-code the Status column (col 12)
@@ -1390,7 +1403,7 @@ let activeMapping = null; // currently visible mapping tab
 //  INIT
 // ═══════════════════════════════════════════════
 // App version — bump this on every update.  vX.Y → Y = small patch, X = big feature.
-const APP_VERSION = 'v5.4';
+const APP_VERSION = 'v5.5';
 
 function init() {
   const vb = document.getElementById('versionBadge');
@@ -2745,6 +2758,9 @@ async function exportToSheets() {
   const btn = document.getElementById('exportBtn');
   const toExport = filteredOrders.length > 0 ? filteredOrders : allOrders;
   if (toExport.length === 0) return showToast('No orders to export', 'error');
+  // Full export (no filter active) → tell the sheet to REPLACE its rows so it
+  // mirrors the current data; a filtered subset only APPENDS so it can't wipe the rest.
+  const fullExport = filteredOrders.length === 0;
 
   btn.disabled = true;
   btn.innerHTML = '<span class="spinner"></span> Exporting…';
@@ -2774,7 +2790,7 @@ async function exportToSheets() {
     try {
       const res = await fetch(url, {
         method: 'POST',
-        body:   JSON.stringify({ rows }),
+        body:   JSON.stringify({ rows, full: fullExport }),
         // NO Content-Type header → browser treats as simple request → no CORS preflight
       });
       const text = await res.text();
@@ -2793,7 +2809,7 @@ async function exportToSheets() {
         await fetch(url, {
           method: 'POST',
           mode:   'no-cors',
-          body:   JSON.stringify({ rows }),
+          body:   JSON.stringify({ rows, full: fullExport }),
         });
         showToast(`↗ ${rows.length} orders sent to Google Sheets (check your sheet to confirm)`, 'success');
         exported = true;
