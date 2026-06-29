@@ -90,11 +90,15 @@ function doPost(e) {
 
     if (data.length > 0) {
       const lastRow = sheet.getLastRow();
-      // Force the date columns to PLAIN TEXT before writing so Google Sheets can't
-      // silently re-read a day-first "DD-MM-YYYY" string as a US MM-DD date.
+      const writeRange = sheet.getRange(lastRow + 1, 1, data.length, HEADERS.length);
+      // Reset the whole write block to General first — an older layout can leave a stale
+      // DATE format on what is now the Net Settlement column, which makes the amount
+      // numbers store/read back as 1900-era dates. THEN force the two real date columns
+      // to TEXT so day-first "DD-MM-YYYY" isn't re-parsed as a US MM-DD date.
+      writeRange.setNumberFormat('General');
       sheet.getRange(lastRow + 1, 4,  data.length, 1).setNumberFormat('@');   // Order Date
       sheet.getRange(lastRow + 1, 12, data.length, 1).setNumberFormat('@');   // Settlement Date
-      sheet.getRange(lastRow + 1, 1, data.length, HEADERS.length).setValues(data);
+      writeRange.setValues(data);
 
       // Colour-code the Status column (col 13)
       data.forEach((row, i) => {
