@@ -1410,7 +1410,7 @@ let activeMapping = null; // currently visible mapping tab
 //  INIT
 // ═══════════════════════════════════════════════
 // App version — bump this on every update.  vX.Y → Y = small patch, X = big feature.
-const APP_VERSION = 'v5.7';
+const APP_VERSION = 'v5.8';
 
 function init() {
   const vb = document.getElementById('versionBadge');
@@ -2765,9 +2765,12 @@ async function exportToSheets() {
   const btn = document.getElementById('exportBtn');
   const toExport = filteredOrders.length > 0 ? filteredOrders : allOrders;
   if (toExport.length === 0) return showToast('No orders to export', 'error');
-  // Full export (no filter active) → tell the sheet to REPLACE its rows so it
-  // mirrors the current data; a filtered subset only APPENDS so it can't wipe the rest.
-  const fullExport = filteredOrders.length === 0;
+  // Full export (every order is being sent, i.e. no narrowing filter) → tell the sheet
+  // to REPLACE its rows so it mirrors the current data. A filtered SUBSET only APPENDS
+  // so it can't wipe the rest. NOTE: applyFilters() sets filteredOrders = ALL orders
+  // when no filter is active, so it is never empty — compare against allOrders length
+  // rather than checking for an empty list (that check never fired → never replaced).
+  const fullExport = toExport.length === allOrders.length;
 
   btn.disabled = true;
   btn.innerHTML = '<span class="spinner"></span> Exporting…';
