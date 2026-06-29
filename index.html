@@ -1390,7 +1390,7 @@ let activeMapping = null; // currently visible mapping tab
 //  INIT
 // ═══════════════════════════════════════════════
 // App version — bump this on every update.  vX.Y → Y = small patch, X = big feature.
-const APP_VERSION = 'v5.3';
+const APP_VERSION = 'v5.4';
 
 function init() {
   const vb = document.getElementById('versionBadge');
@@ -3127,32 +3127,65 @@ function parseINR(val, forcePos) {
   return forcePos ? Math.abs(n) : n;
 }
 
+// Robust date parser. India eCommerce reports use DAY-FIRST dates (DD-MM-YYYY,
+// DD/MM/YYYY, DD.MM.YYYY) and that is also the format fmtDate() writes. We must
+// NEVER hand a numeric day-first string to `new Date(str)`: Chrome/V8 parse such
+// strings as MM-DD-YYYY (US order) and silently swap day & month whenever the day
+// is ≤ 12 — e.g. new Date("11-05-2026") → 5 Nov 2026 instead of 11 May 2026.
+// That swap is what produced the bogus Feb/Mar/Nov/Dec (even future) dates.
 function parseDate(str) {
-  if (!str) return null;
+  if (str == null || str === '') return null;
+  if (str instanceof Date) return isNaN(str.getTime()) ? null : str;
+
   str = String(str).trim();
   if (!str) return null;
-  // Try formats: DD-MM-YYYY, DD/MM/YYYY, YYYY-MM-DD, MM/DD/YYYY, DD Mon YYYY
-  const patterns = [
-    /^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/,  // DD/MM/YYYY or MM/DD/YYYY
-    /^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/,    // YYYY-MM-DD
-    /^(\d{1,2})[\/\-](\w{3})[\/\-](\d{4})$/       // DD-Mon-YYYY
-  ];
-  // Try native parse first
-  const d = new Date(str);
-  if (!isNaN(d.getTime())) return d;
-  // DD/MM/YYYY
-  const m1 = str.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
-  if (m1) {
-    const d1 = new Date(m1[3], m1[2]-1, m1[1]);
-    if (!isNaN(d1.getTime())) return d1;
+
+  // 0) Excel serial date number (defensive — sheet_to_json runs with raw:false so
+  //    this is rare, but a stray numeric cell shouldn't be mis-read). Bounded well
+  //    clear of bare years so "2026" is never treated as a serial.
+  if (/^\d{4,5}(\.\d+)?$/.test(str)) {
+    const n = parseFloat(str);
+    if (n >= 40000 && n <= 60000) {                 // ≈ 2009-07 .. 2064
+      const d = new Date(Math.round((n - 25569) * 86400000));
+      if (!isNaN(d.getTime())) return d;
+    }
   }
+
+  // 1) Year-first / ISO:  YYYY-MM-DD  (optionally followed by time/zone) — unambiguous
+  let m = str.match(/^(\d{4})[\/\-.](\d{1,2})[\/\-.](\d{1,2})/);
+  if (m) {
+    const d = new Date(+m[1], +m[2] - 1, +m[3]);
+    if (!isNaN(d.getTime())) return d;
+  }
+
+  // 2) Day-first numeric:  DD-MM-YYYY / DD/MM/YYYY / DD.MM.YYYY  (2- or 4-digit year,
+  //    optional trailing time). Parsed explicitly — see warning above.
+  m = str.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})/);
+  if (m) {
+    let dd = +m[1], mm = +m[2], yy = +m[3];
+    if (yy < 100) yy += 2000;
+    // Defensive: if a file ever uses month-first, the first field exceeds 12 — swap.
+    if (dd <= 12 && mm > 12) { const t = dd; dd = mm; mm = t; }
+    if (mm >= 1 && mm <= 12 && dd >= 1 && dd <= 31) {
+      const d = new Date(yy, mm - 1, dd);
+      if (!isNaN(d.getTime())) return d;
+    }
+  }
+
+  // 3) Textual month is unambiguous ("5 Nov 2026", "Nov 5, 2026", "5-Nov-2026") —
+  //    only here is the native parser safe.
+  if (/[A-Za-z]{3}/.test(str)) {
+    const d = new Date(str);
+    if (!isNaN(d.getTime())) return d;
+  }
+
   return null;
 }
 
 function fmtDate(d) {
   if (!d) return '';
-  const dt = d instanceof Date ? d : new Date(d);
-  if (isNaN(dt.getTime())) return String(d);
+  const dt = d instanceof Date ? d : parseDate(d);   // route strings through the safe parser
+  if (!dt || isNaN(dt.getTime())) return String(d);
   return `${String(dt.getDate()).padStart(2,'0')}-${String(dt.getMonth()+1).padStart(2,'0')}-${dt.getFullYear()}`;
 }
 
