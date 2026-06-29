@@ -44,16 +44,19 @@ function doPost(e) {
 
     if (!sheet) {
       sheet = ss.insertSheet(SHEET_TAB);
-      const hdrRange = sheet.getRange(1, 1, 1, HEADERS.length);
-      hdrRange.setValues([HEADERS]);
-      hdrRange.setBackground('#0D1B2A')
-              .setFontColor('#00D4F0')
-              .setFontWeight('bold')
-              .setFontSize(10);
       sheet.setFrozenRows(1);
       sheet.setColumnWidth(3, 160);   // Order ID
       sheet.setColumnWidth(5, 200);   // Product
     }
+    // ALWAYS (re)write the header row so a sheet created by an OLDER version (fewer
+    // columns, e.g. no "Courier Charges") is repaired in place — otherwise the new
+    // 15-column rows misalign and the ERP reads the wrong column for Settlement Date.
+    const hdrRange = sheet.getRange(1, 1, 1, HEADERS.length);
+    hdrRange.setValues([HEADERS]);
+    hdrRange.setBackground('#0D1B2A')
+            .setFontColor('#00D4F0')
+            .setFontWeight('bold')
+            .setFontSize(10);
 
     const rows = payload.rows || [];
     const full = payload.full === true || payload.mode === 'replace';
