@@ -8,6 +8,21 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="apple-mobile-web-app-title" content="IBI Tracker">
 <title>IBI Settlement Tracker — India Business International</title>
+<!-- Open Graph / social sharing -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="India Business International">
+<meta property="og:title" content="IBI Settlement Tracker">
+<meta property="og:description" content="Track marketplace settlement payouts, fees and reconciliation across Amazon, Flipkart, Meesho and more.">
+<meta property="og:url" content="https://settlement.indiabusinessinternational.online/">
+<meta property="og:image" content="https://settlement.indiabusinessinternational.online/og-banner.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="IBI Settlement Tracker — India Business International">
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="IBI Settlement Tracker">
+<meta name="twitter:description" content="Track marketplace settlement payouts, fees and reconciliation across Amazon, Flipkart, Meesho and more.">
+<meta name="twitter:image" content="https://settlement.indiabusinessinternational.online/og-banner.png">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23000000'/%3E%3Ctext x='32' y='43' font-family='Roboto,Arial,sans-serif' font-size='27' font-weight='700' text-anchor='middle' fill='%2300c5ff'%3EIBI%3C/text%3E%3C/svg%3E">
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23000000'/%3E%3Ctext x='32' y='43' font-family='Roboto,Arial,sans-serif' font-size='27' font-weight='700' text-anchor='middle' fill='%2300c5ff'%3EIBI%3C/text%3E%3C/svg%3E">
@@ -1414,7 +1429,7 @@ let activeMapping = null; // currently visible mapping tab
 //  INIT
 // ═══════════════════════════════════════════════
 // App version — bump this on every update.  vX.Y → Y = small patch, X = big feature.
-const APP_VERSION = 'v5.9';
+const APP_VERSION = 'v5.10';
 
 function init() {
   const vb = document.getElementById('versionBadge');
