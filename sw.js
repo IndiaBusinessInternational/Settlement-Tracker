@@ -1,12 +1,12 @@
 // IBI Settlement Tracker — service worker
 // HTML/app-shell = NETWORK-FIRST (a normal refresh always gets the latest version;
 // falls back to cache only when offline). Static assets = cache-first.
-const CACHE = 'ibi-settlement-v5_10';
-const ASSETS = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png'];
+const CACHE = 'ibi-settlement-v5_11';
+const ASSETS = ['./', './index.html', './manifest.json', './icons/icon-192.png', './icons/icon-512.png', './icons/icon-maskable-512.png', './icons/apple-touch-icon.png'];
 
 self.addEventListener('install', e => {
   e.waitUntil(
-    caches.open(CACHE).then(c => c.addAll(ASSETS).catch(() => {})).then(() => self.skipWaiting())
+    caches.open(CACHE).then(c => c.addAll(ASSETS.map(u => new Request(u, { cache: 'reload' }))).catch(() => {})).then(() => self.skipWaiting())
   );
 });
 
