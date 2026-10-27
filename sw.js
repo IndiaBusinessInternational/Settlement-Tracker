@@ -1,8 +1,8 @@
 // IBI Settlement Tracker — service worker
 // HTML/app-shell = NETWORK-FIRST (a normal refresh always gets the latest version;
 // falls back to cache only when offline). Static assets = cache-first.
-const CACHE = 'ibi-settlement-v5_11';
-const ASSETS = ['./', './index.html', './manifest.json', './icons/icon-192.png', './icons/icon-512.png', './icons/icon-maskable-512.png', './icons/apple-touch-icon.png'];
+const CACHE = 'ibi-settlement-v5_12';
+const ASSETS = ['./', './index.html', './manifest.json', './ibi-share.js', './icons/icon-192.png', './icons/icon-512.png', './icons/icon-maskable-512.png', './icons/apple-touch-icon.png'];
 
 self.addEventListener('install', e => {
   e.waitUntil(
